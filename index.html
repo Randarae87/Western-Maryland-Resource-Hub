@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Western Maryland Resource Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#3B82F6', dark: '#2563EB', light: '#60A5FA', pale: '#DBEAFE' },
+            sky: { DEFAULT: '#0EA5E9', dark: '#0284C7', light: '#38BDF8' },
+            slate: { DEFAULT: '#64748B', light: '#94A3B8', lighter: '#CBD5E1' },
+            warm: { gray: '#64748B', border: '#E2E8F0' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #F8FAFC; }
+    .card-shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06); }
+    .card-shadow:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06); }
+    .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .modal-enter { animation: modalIn 0.2s ease; }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.25rem; }
+    .service-checkbox { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; border-radius: 0.375rem; cursor: pointer; transition: background 0.2s; font-size: 0.875rem; }
+    .service-checkbox:hover { background: rgba(59, 130, 246, 0.08); }
+    .service-checkbox input:checked + span { color: #2563EB; font-weight: 600; }
+    .category-header { font-weight: 600; color: #2563EB; padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border-radius: 0.375rem; margin-top: 0.75rem; margin-bottom: 0.5rem; font-size: 0.875rem; }
+    .category-header:first-child { margin-top: 0; }
+    .sync-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px; }
+    .sync-online { background: #DCFCE7; color: #166534; }
+    .sync-offline { background: #FEE2E2; color: #991B1B; }
+    .sync-saving { background: #FEF3C7; color: #92400E; }
+    .loading-overlay { position: fixed; inset: 0; background: rgba(248,250,252,0.95); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .spinner { width: 50px; height: 50px; border: 4px solid #E2E8F0; border-top-color: #3B82F6; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .contact-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; }
+    .contact-row input { flex: 1; }
+    .btn-add-contact { padding: 0.25rem 0.75rem; font-size: 0.75rem; background: #3B82F6; color: white; border-radius: 0.375rem; cursor: pointer; }
+    .btn-add-contact:hover { background: #2563EB; }
+    .quick-add-service { background: #EFF6FF; border: 2px dashed #3B82F6; padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem; }
+    .selection-cart { position: fixed; bottom: 20px; right: 20px; background: white; border-radius: 1rem; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 40; max-width: 400px; max-height: 70vh; display: flex; flex-direction: column; }
+    .exact-match { border: 2px solid #22C55E; background: #F0FDF4; }
+    .scrape-result-card { border: 2px solid #3B82F6; background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-radius: 1rem; padding: 1.5rem; margin-top: 1.5rem; }
+    .extracted-field { background: white; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.75rem; }
+    .extracted-field label { font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem; }
+    .extracted-field input, .extracted-field select, .extracted-field textarea { width: 100%; border: none; background: transparent; font-size: 0.95rem; color: #1e293b; outline: none; }
+    .extracted-field input:focus, .extracted-field select:focus, .extracted-field textarea:focus { background: #F8FAFC; margin: -0.5rem; padding: 0.5rem; width: calc(100% + 1rem); border-radius: 0.25rem; }
+    .confidence-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .confidence-high { background: #DCFCE7; color: #166534; }
+    .confidence-medium { background: #FEF3C7; color: #92400E; }
+    .confidence-low { background: #FEE2E2; color: #991B1B; }
+    @media print { body * { visibility: hidden; } #print-area, #print-area * { visibility: visible; } #print-area { position: absolute; left: 0; top: 0; width: 100%; } .no-print { display: none !important; } }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="text-center">
+      <div class="spinner mx-auto mb-4"></div>
+      <p class="text-primary font-semibold">Loading resources...</p>
+      <p id="loading-status" class="text-sm text-slate mt-2"></p>
+    </div>
+  </div>
+
+  <nav class="bg-white border-b border-warm-border sticky top-0 z-50 no-print">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">🤝</span>
+          <h1 class="text-xl text-primary-dark font-bold">Western Maryland Resource Hub</h1>
+          <div id="sync-status" class="sync-status sync-offline">🔴 Connecting...</div>
+        </div>
+        <div class="flex items-center space-x-1 flex-wrap">
+          <button onclick="showPage('dashboard')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-page="dashboard">Dashboard</button>
+          <button onclick="showPage('search')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-page="search">Search</button>
+          <button onclick="showPage('add')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-page="add">Add Resource</button>
+          <button onclick="showPage('import')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-page="import">Import/Export</button>
+          <button onclick="showPage('discover')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-page="discover">Discover</button>
+          <button onclick="showPage('manage')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-page="manage">Manage Types</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Dashboard Page -->
+    <div id="page-dashboard" class="page">
+      <h2 class="text-2xl text-primary-dark mb-6">Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl p-6 card-shadow text-center"><div id="stat-total" class="text-4xl font-bold text-primary">0</div><p class="text-slate mt-1">Total Resources</p></div>
+        <div class="bg-white rounded-xl p-6 card-shadow text-center"><div id="stat-services" class="text-4xl font-bold text-primary">0</div><p class="text-slate mt-1">Service Types</p></div>
+        <div class="bg-white rounded-xl p-6 card-shadow text-center"><div id="stat-counties" class="text-4xl font-bold text-primary">0</div><p class="text-slate mt-1">Counties Covered</p></div>
+        <div class="bg-white rounded-xl p-6 card-shadow text-center"><div id="stat-populations" class="text-4xl font-bold text-primary">0</div><p class="text-slate mt-1">Populations Served</p></div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl p-6 card-shadow"><h3 class="text-lg text-primary-dark mb-4">Resources by Service Type</h3><div id="chart-services"></div></div>
+        <div class="bg-white rounded-xl p-6 card-shadow"><h3 class="text-lg text-primary-dark mb-4">Resources by County</h3><div id="chart-counties"></div></div>
+      </div>
+    </div>
+
+    <!-- Search Page -->
+    <div id="page-search" class="page hidden">
+      <h2 class="text-2xl text-primary-dark mb-6">Search Resources</h2>
+      <div class="bg-white rounded-xl p-6 card-shadow mb-6 no-print">
+        <div class="flex flex-wrap gap-4 mb-4">
+          <input type="text" id="search-input" placeholder="Search by name, service, keyword..." class="flex-1 min-w-[200px] px-4 py-3 border border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30" oninput="doSearch()">
+          <select id="filter-county" class="px-4 py-3 border border-warm-border rounded-lg" onchange="doSearch()"><option value="">All Counties</option></select>
+          <select id="filter-service" class="px-4 py-3 border border-warm-border rounded-lg" onchange="doSearch()"><option value="">All Services</option></select>
+          <select id="filter-population" class="px-4 py-3 border border-warm-border rounded-lg" onchange="doSearch()"><option value="">All Populations</option></select>
+          <button onclick="resetFilters()" class="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg">Reset</button>
+        </div>
+        <div class="flex justify-between items-center">
+          <p class="text-sm text-slate">💡 Exact name matches appear first with green border</p>
+          <div class="flex gap-2">
+            <button onclick="selectAllVisible()" class="px-3 py-1 text-sm bg-primary-pale text-primary rounded-lg hover:bg-primary/20">Select All</button>
+            <button onclick="clearSelections()" class="px-3 py-1 text-sm bg-gray-100 text-slate rounded-lg hover:bg-gray-200">Clear</button>
+          </div>
+        </div>
+      </div>
+      <p id="results-count" class="text-slate mb-4 no-print"></p>
+      <div id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- Add Resource Page -->
+    <div id="page-add" class="page hidden">
+      <h2 class="text-2xl text-primary-dark mb-6">Add New Resource</h2>
+      <div id="duplicate-warning" class="hidden mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
+        <p class="font-semibold text-amber-800">⚠️ Possible Duplicate Found!</p>
+        <p id="duplicate-warning-text" class="text-sm text-amber-700"></p>
+        <div class="mt-2 flex gap-2">
+          <button onclick="viewDuplicateResource()" class="px-3 py-1 bg-white border rounded text-sm hover:bg-gray-50">View Existing</button>
+          <button onclick="dismissDuplicateWarning()" class="px-3 py-1 bg-white border rounded text-sm hover:bg-gray-50">Add Anyway</button>
+        </div>
+      </div>
+      <form id="add-form" class="bg-white rounded-xl p-6 card-shadow max-w-4xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Organization Name <span class="text-red-500">*</span></label>
+            <input type="text" id="f-name" required class="w-full px-4 py-2 border border-warm-border rounded-lg" oninput="checkDuplicateName(this.value)">
+            <p id="name-status" class="text-sm mt-1"></p>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Service Types <span class="text-red-500">*</span></label>
+            <div id="service-checkboxes" class="p-4 border border-warm-border rounded-lg bg-gray-50 max-h-80 overflow-y-auto"></div>
+            <div class="quick-add-service">
+              <p class="text-sm font-semibold text-primary mb-2">➕ Don't see a service type? Add it here:</p>
+              <div class="flex gap-2 flex-wrap">
+                <input type="text" id="quick-service-name" placeholder="New service type name" class="flex-1 min-w-[200px] px-3 py-2 border border-warm-border rounded-lg text-sm">
+                <select id="quick-service-category" class="px-3 py-2 border border-warm-border rounded-lg text-sm"></select>
+                <button type="button" onclick="quickAddServiceType()" class="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-dark">Add</button>
+              </div>
+            </div>
+          </div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">County <span class="text-red-500">*</span></label><select id="f-county" required class="w-full px-4 py-2 border border-warm-border rounded-lg"></select></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-2">Populations Served</label><div id="population-checkboxes" class="p-3 border border-warm-border rounded-lg bg-gray-50 max-h-48 overflow-y-auto"></div></div>
+          <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-1">Phone Numbers <span class="text-red-500">*</span></label><div id="phone-container"></div><button type="button" onclick="addContactField('phone')" class="btn-add-contact mt-1">+ Add Phone</button></div>
+          <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-1">Fax Numbers</label><div id="fax-container"></div><button type="button" onclick="addContactField('fax')" class="btn-add-contact mt-1">+ Add Fax</button></div>
+          <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-1">Email Addresses</label><div id="email-container"></div><button type="button" onclick="addContactField('email')" class="btn-add-contact mt-1">+ Add Email</button></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">Website</label><input type="url" id="f-website" placeholder="https://" class="w-full px-4 py-2 border border-warm-border rounded-lg"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">City</label><input type="text" id="f-city" class="w-full px-4 py-2 border border-warm-border rounded-lg"></div>
+          <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-1">Address</label><input type="text" id="f-address" class="w-full px-4 py-2 border border-warm-border rounded-lg"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">State</label><input type="text" id="f-state" value="MD" class="w-full px-4 py-2 border border-warm-border rounded-lg"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">ZIP Code</label><input type="text" id="f-zip" class="w-full px-4 py-2 border border-warm-border rounded-lg"></div>
+        </div>
+        <div class="mb-4"><label class="block text-sm font-semibold text-gray-700 mb-2">Services Offered</label><div id="services-offered-checkboxes" class="p-3 border border-warm-border rounded-lg bg-gray-50 max-h-64 overflow-y-auto"></div></div>
+        <div class="mb-4"><label class="block text-sm font-semibold text-gray-700 mb-2">Eligibility Requirements</label><div id="eligibility-checkboxes" class="p-3 border border-warm-border rounded-lg bg-gray-50 max-h-48 overflow-y-auto checkbox-grid"></div></div>
+        <div class="mb-6"><label class="block text-sm font-semibold text-gray-700 mb-2">Restrictions</label><div id="restrictions-checkboxes" class="p-3 border border-warm-border rounded-lg bg-gray-50 max-h-48 overflow-y-auto checkbox-grid"></div></div>
+        <div class="mb-4"><label class="block text-sm font-semibold text-gray-700 mb-1">Additional Notes</label><textarea id="f-notes" rows="2" class="w-full px-4 py-2 border border-warm-border rounded-lg"></textarea></div>
+        <div class="flex gap-3 justify-end">
+          <button type="button" onclick="clearForm()" class="px-6 py-2 border border-warm-border rounded-lg hover:bg-gray-50">Clear</button>
+          <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Add Resource</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Import/Export Page -->
+    <div id="page-import" class="page hidden">
+      <h2 class="text-2xl text-primary-dark mb-6">Import / Export Resources</h2>
+      <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+        <p class="text-green-800 font-semibold">☁️ Cloud Sync Active</p>
+        <p class="text-green-700 text-sm">All resources are saved to the cloud automatically.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg text-primary-dark mb-4">📤 Import Resources</h3>
+          <p class="text-slate text-sm mb-4">Upload CSV, JSON, TSV, or Excel files.</p>
+          <input type="file" id="import-file" accept=".csv,.json,.txt,.tsv,.xlsx,.xls" class="w-full mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark">
+          <button onclick="importFile()" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark">Import File</button>
+          <div id="import-status" class="mt-3 text-sm"></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg text-primary-dark mb-4">📥 Export Resources</h3>
+          <p class="text-slate text-sm mb-4">Download all <span id="export-count" class="font-semibold text-primary">0</span> resources.</p>
+          <button onclick="exportJSON()" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark mb-3">⭐ Export as JSON</button>
+          <button onclick="exportCSV()" class="w-full py-3 border border-primary text-primary rounded-lg hover:bg-primary/5">Export as CSV</button>
+        </div>
+      </div>
+
+      <!-- Enhanced Web Scraper -->
+      <div class="mt-6 bg-white rounded-xl p-6 card-shadow">
+        <h3 class="text-lg text-primary-dark mb-2">🔗 Smart Contact Scraper</h3>
+        <p class="text-slate text-sm mb-4">Paste a "Contact Us" or organization page URL. The scraper will extract all contact information.</p>
+        
+        <div class="flex gap-3 mb-4">
+          <input type="url" id="url-input" placeholder="https://example.org/contact" class="flex-1 px-4 py-3 border border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <button onclick="scrapeContactPage()" id="scrape-btn" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark whitespace-nowrap">
+            <span id="scrape-btn-text">🔍 Extract Contact Info</span>
+          </button>
+        </div>
+
+        <div id="scrape-status" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span id="scrape-status-text" class="text-blue-700 text-sm">Fetching page...</span>
+          </div>
+        </div>
+
+        <div id="scrape-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-red-700 text-sm"><strong>Error:</strong> <span id="scrape-error-text"></span></p>
+          <p class="text-red-600 text-xs mt-1">Try copying the contact information manually and using the "Add Resource" form instead.</p>
+        </div>
+
+        <!-- Extracted Data Preview & Edit Form -->
+        <div id="scrape-result" class="hidden scrape-result-card">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h4 class="text-lg font-semibold text-primary-dark">📋 Extracted Contact Information</h4>
+              <p class="text-sm text-slate">Review and edit before adding to the Resource Hub</p>
+            </div>
+            <div id="confidence-indicator"></div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2 extracted-field">
+              <label>Organization Name *</label>
+              <input type="text" id="scraped-name" placeholder="Enter organization name">
+            </div>
+            
+            <div class="extracted-field">
+              <label>Phone Numbers</label>
+              <div id="scraped-phones-container"></div>
+              <button type="button" onclick="addScrapedPhone()" class="text-xs text-primary hover:underline mt-1">+ Add phone</button>
+            </div>
+            
+            <div class="extracted-field">
+              <label>Email Addresses</label>
+              <div id="scraped-emails-container"></div>
+              <button type="button" onclick="addScrapedEmail()" class="text-xs text-primary hover:underline mt-1">+ Add email</button>
+            </div>
+            
+            <div class="extracted-field">
+              <label>Fax Numbers</label>
+              <div id="scraped-fax-container"></div>
+              <button type="button" onclick="addScrapedFax()" class="text-xs text-primary hover:underline mt-1">+ Add fax</button>
+            </div>
+            
+            <div class="extracted-field">
+              <label>Website</label>
+              <input type="url" id="scraped-website" placeholder="https://">
+            </div>
+            
+            <div class="md:col-span-2 extracted-field">
+              <label>Street Address</label>
+              <input type="text" id="scraped-address" placeholder="123 Main Street">
+            </div>
+            
+            <div class="extracted-field">
+              <label>City</label>
+              <input type="text" id="scraped-city" placeholder="City">
+            </div>
+            
+            <div class="extracted-field">
+              <label>State</label>
+              <input type="text" id="scraped-state" value="MD" placeholder="State">
+            </div>
+            
+            <div class="extracted-field">
+              <label>ZIP Code</label>
+              <input type="text" id="scraped-zip" placeholder="21201">
+            </div>
+            
+            <div class="extracted-field">
+              <label>County *</label>
+              <select id="scraped-county">
+                <option value="Allegany">Allegany</option>
+                <option value="Carroll">Carroll</option>
+                <option value="Frederick">Frederick</option>
+                <option value="Garrett">Garrett</option>
+                <option value="Washington">Washington</option>
+              </select>
+            </div>
+            
+            <div class="md:col-span-2 extracted-field">
+              <label>Service Types * (select all that apply)</label>
+              <div id="scraped-services" class="mt-2 max-h-40 overflow-y-auto"></div>
+            </div>
+            
+            <div class="md:col-span-2 extracted-field">
+              <label>Additional Notes (hours, special info, etc.)</label>
+              <textarea id="scraped-notes" rows="2" placeholder="Any additional information found on the page..."></textarea>
+            </div>
+          </div>
+
+          <div class="flex gap-3 justify-end mt-6">
+            <button onclick="cancelScrape()" class="px-6 py-2 border border-warm-border rounded-lg hover:bg-white">Cancel</button>
+            <button onclick="addScrapedResource()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">✓ Add to Resource Hub</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 bg-white rounded-xl p-6 card-shadow">
+        <h3 class="text-lg text-primary-dark mb-4">🔍 Find Duplicates</h3>
+        <button onclick="findDuplicates()" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark">Scan for Duplicates</button>
+        <div id="duplicates-result" class="mt-4"></div>
+      </div>
+    </div>
+
+    <!-- Discover Page -->
+    <div id="page-discover" class="page hidden">
+      <h2 class="text-2xl text-primary-dark mb-6">Discover Resources Online</h2>
+      <div class="bg-white rounded-xl p-6 card-shadow mb-6">
+        <h3 class="text-lg text-primary-dark mb-4">🔍 Quick Search</h3>
+        <p class="text-slate text-sm mb-4">Opens Google in a new tab with your search.</p>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="webSearch('food pantry')" class="px-4 py-2 bg-primary-pale text-primary rounded-full hover:bg-primary/20">🍎 Food Pantries</button>
+          <button onclick="webSearch('housing assistance')" class="px-4 py-2 bg-primary-pale text-primary rounded-full hover:bg-primary/20">🏠 Housing</button>
+          <button onclick="webSearch('mental health counseling')" class="px-4 py-2 bg-primary-pale text-primary rounded-full hover:bg-primary/20">🧠 Mental Health</button>
+          <button onclick="webSearch('substance abuse treatment')" class="px-4 py-2 bg-primary-pale text-primary rounded-full hover:bg-primary/20">💊 Substance Abuse</button>
+          <button onclick="webSearch('job training employment')" class="px-4 py-2 bg-primary-pale text-primary rounded-full hover:bg-primary/20">💼 Employment</button>
+          <button onclick="webSearch('legal aid')" class="px-4 py-2 bg-primary-pale text-primary rounded-full hover:bg-primary/20">⚖️ Legal Aid</button>
+          <button onclick="webSearch('senior services')" class="px-4 py-2 bg-primary-pale text-primary rounded-full hover:bg-primary/20">👴 Seniors</button>
+          <button onclick="webSearch('veteran services')" class="px-4 py-2 bg-primary-pale text-primary rounded-full hover:bg-primary/20">🎖️ Veterans</button>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-6 card-shadow mb-6">
+        <h3 class="text-lg text-primary-dark mb-4">🎯 Custom Search</h3>
+        <div class="flex flex-wrap gap-3">
+          <select id="discover-county" class="px-4 py-2 border border-warm-border rounded-lg"><option value="">Any County</option></select>
+          <select id="discover-service" class="px-4 py-2 border border-warm-border rounded-lg"><option value="">Any Service</option></select>
+          <input type="text" id="discover-keyword" placeholder="Additional keywords..." class="flex-1 min-w-[200px] px-4 py-2 border border-warm-border rounded-lg">
+          <button onclick="customWebSearch()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Search Google</button>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-6 card-shadow">
+        <h3 class="text-lg text-primary-dark mb-4">📚 Resource Directories</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <a href="https://www.211.org/" target="_blank" class="flex items-center gap-3 p-4 border rounded-lg hover:bg-primary-pale"><span class="text-2xl">📞</span><div><p class="font-semibold text-primary-dark">211 Maryland</p><p class="text-sm text-slate">Statewide hotline</p></div></a>
+          <a href="https://www.benefits.gov/" target="_blank" class="flex items-center gap-3 p-4 border rounded-lg hover:bg-primary-pale"><span class="text-2xl">🏛️</span><div><p class="font-semibold text-primary-dark">Benefits.gov</p><p class="text-sm text-slate">Federal benefits</p></div></a>
+          <a href="https://www.findhelp.org/" target="_blank" class="flex items-center gap-3 p-4 border rounded-lg hover:bg-primary-pale"><span class="text-2xl">🔍</span><div><p class="font-semibold text-primary-dark">FindHelp.org</p><p class="text-sm text-slate">Local services</p></div></a>
+          <a href="https://www.samhsa.gov/find-help/national-helpline" target="_blank" class="flex items-center gap-3 p-4 border rounded-lg hover:bg-primary-pale"><span class="text-2xl">🆘</span><div><p class="font-semibold text-primary-dark">SAMHSA</p><p class="text-sm text-slate">Substance abuse help</p></div></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manage Service Types Page -->
+    <div id="page-manage" class="page hidden">
+      <h2 class="text-2xl text-primary-dark mb-6">Manage Service Types</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg text-primary-dark mb-4">➕ Add New Service Type</h3>
+          <div class="mb-4"><label class="block text-sm font-semibold text-gray-700 mb-1">Service Type Name</label><input type="text" id="new-service-name" placeholder="e.g., Pet Assistance" class="w-full px-4 py-2 border border-warm-border rounded-lg"></div>
+          <div class="mb-4"><label class="block text-sm font-semibold text-gray-700 mb-1">Category</label><select id="new-service-category" class="w-full px-4 py-2 border border-warm-border rounded-lg"></select></div>
+          <button onclick="addNewServiceType()" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark">Add Service Type</button>
+        </div>
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg text-primary-dark mb-4">📁 Add New Category</h3>
+          <div class="mb-4"><label class="block text-sm font-semibold text-gray-700 mb-1">Category Name (with emoji)</label><input type="text" id="new-category-name" placeholder="e.g., 🐾 Pet Services" class="w-full px-4 py-2 border border-warm-border rounded-lg"></div>
+          <button onclick="addNewCategory()" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark">Add Category</button>
+        </div>
+      </div>
+      <div class="mt-6 bg-white rounded-xl p-6 card-shadow">
+        <h3 class="text-lg text-primary-dark mb-4">📋 Current Service Types</h3>
+        <div id="manage-services-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Selection Cart -->
+  <div id="selection-cart" class="selection-cart hidden no-print">
+    <div class="p-4 border-b bg-primary text-white rounded-t-xl">
+      <div class="flex justify-between items-center"><h3 class="font-semibold">📋 Selected (<span id="selection-count">0</span>)</h3><button onclick="toggleCart()" class="text-white/80 hover:text-white">✕</button></div>
+    </div>
+    <div id="selection-list" class="p-4 overflow-y-auto flex-1" style="max-height: 300px;"></div>
+    <div class="p-4 border-t flex gap-2">
+      <button onclick="printSelections()" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">🖨️ Print</button>
+      <button onclick="clearSelections()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Clear</button>
+    </div>
+  </div>
+  <button id="cart-toggle" onclick="toggleCart()" class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-primary-dark no-print hidden">📋 <span id="cart-badge" class="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">0</span></button>
+
+  <div id="print-area" class="hidden"></div>
+
+  <!-- Modals -->
+  <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print" onclick="if(event.target===this)closeModal()">
+    <div class="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col modal-enter">
+      <div class="p-6 border-b flex items-center justify-between shrink-0"><h3 id="modal-title" class="text-xl text-primary-dark"></h3><button onclick="closeModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button></div>
+      <div id="modal-body" class="p-6 overflow-y-auto flex-1"></div>
+      <div id="modal-footer" class="p-4 border-t shrink-0"></div>
+    </div>
+  </div>
+
+  <div id="import-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print" onclick="if(event.target===this)closeImportModal()">
+    <div class="bg-white rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col modal-enter">
+      <div class="p-6 border-b shrink-0">
+        <div class="flex items-center justify-between"><h3 class="text-xl text-primary-dark">Import Preview</h3><button onclick="closeImportModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button></div>
+        <div id="import-summary" class="mt-2 flex gap-4 text-sm"></div>
+      </div>
+      <div id="import-preview" class="p-6 overflow-y-auto flex-1 min-h-0"></div>
+      <div class="p-4 border-t flex justify-between items-center shrink-0">
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="skip-duplicates" checked class="w-4 h-4"><span>Skip duplicates</span></label>
+        <div class="flex gap-3"><button onclick="closeImportModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancel</button><button onclick="confirmImport()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Import</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print" onclick="if(event.target===this)closeEditModal()">
+    <div class="bg-white rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col modal-enter">
+      <div class="p-6 border-b shrink-0"><div class="flex items-center justify-between"><h3 class="text-xl text-primary-dark">Edit Resource</h3><button onclick="closeEditModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button></div></div>
+      <div id="edit-form-container" class="p-6 overflow-y-auto flex-1 min-h-0"></div>
+      <div class="p-4 border-t flex justify-end gap-3 shrink-0"><button onclick="closeEditModal()" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Cancel</button><button onclick="saveEdit()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Save</button></div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-2 no-print"></div>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwcQKo-NfVnfZotXBL_afvuUIQxGLNs4k",
+      authDomain: "wm-resource-hub.firebaseapp.com",
+      databaseURL: "https://wm-resource-hub-default-rtdb.firebaseio.com",
+      projectId: "wm-resource-hub",
+      storageBucket: "wm-resource-hub.firebasestorage.app",
+      messagingSenderId: "919632329844",
+      appId: "1:919632329844:web:885dec95a565e7f0efe521"
+    };
+
+    let db = null, firebaseReady = false, resources = [], selectedResources = new Set(), pendingImport = [], foundDuplicateId = null, editingResourceId = null, initialLoadComplete = false, currentFilteredResults = [];
+
+    try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch(e) { console.error('Firebase init failed:', e); }
+
+    const counties = ['Allegany', 'Carroll', 'Frederick', 'Garrett', 'Washington'];
+    const defaultServiceCategories = {
+      '🍎 Food & Nutrition': ['Food Assistance', 'Food Pantry', 'SNAP', 'Nutrition', 'Emergency Food', 'WIC'],
+      '🏠 Housing': ['Housing', 'Recovery Housing', 'Transitional Housing', 'Emergency Shelter', 'Rental Assistance', 'Sober Living'],
+      '🏥 Healthcare': ['Healthcare', 'Primary Care', 'Dental Care', 'Vision Care', 'Medical', 'Prescription Assistance'],
+      '🧠 Mental Health': ['Mental Health', 'Behavioral Health', 'Psychiatric', 'Therapy', 'Counseling', 'Crisis', 'Peer Support'],
+      '💊 Substance Abuse': ['Substance Abuse', 'Recovery', 'Detox', 'Inpatient Treatment', 'Outpatient Treatment', 'MAT', '12 Step'],
+      '💼 Employment': ['Employment', 'Job Training', 'GED', 'Education', 'Vocational Training', 'Resume Help'],
+      '⚖️ Legal': ['Legal Aid', 'Expungement', 'ID Assistance', 'Advocacy'],
+      '🚗 Transportation': ['Transportation', 'Bus Passes', 'Medical Transport', 'Gas Assistance'],
+      '👨‍👩‍👧 Family': ['Family Services', 'Childcare', 'Parenting Classes', 'Domestic Violence'],
+      '👴 Seniors': ['Senior Services', 'Meals on Wheels', 'Adult Day Care'],
+      '🎖️ Veterans': ['Veteran Services', 'VA Benefits'],
+      '💰 Financial': ['Financial Assistance', 'Utility Assistance', 'Emergency Assistance', 'Tax Assistance'],
+      '👕 Basic Needs': ['Clothing', 'Household Items', 'Personal Care'],
+      '📋 Access': ['Walk-ins', 'Appointment Only', 'Hotline', '24/7 Services']
+    };
+    let serviceCategories = JSON.parse(localStorage.getItem('wmrh_serviceCategories')) || JSON.parse(JSON.stringify(defaultServiceCategories));
+    function getServiceTypes() { return [...new Set(Object.values(serviceCategories).flat())].sort(); }
+
+    const populations = ['General Population', 'Families', 'Children & Youth', 'Seniors', 'Veterans', 'Homeless', 'Disabled', 'Immigrants', 'Domestic Violence Survivors', 'LGBTQ+', 'Pregnant Women', 'Single Parents', 'Men', 'Women'];
+    const servicesOfferedCategories = {
+      '📋 General': ['Case Management', 'Referrals', 'Information & Resources', 'Advocacy', 'Crisis Intervention'],
+      '🍎 Food': ['Food Distribution', 'Food Pantry', 'Hot Meals', 'SNAP Application Help'],
+      '🏠 Housing': ['Housing Search', 'Rental Assistance', 'Utility Assistance', 'Emergency Shelter'],
+      '🏥 Healthcare': ['Primary Care', 'Dental Care', 'Mental Health', 'Medication Assistance'],
+      '💼 Employment': ['Job Search', 'Resume Writing', 'Job Training', 'GED Classes'],
+      '⚖️ Legal': ['Legal Aid', 'Expungement Help', 'ID/Document Assistance'],
+      '🚗 Transportation': ['Bus Passes', 'Gas Vouchers', 'Medical Transportation']
+    };
+    const eligibilityOptions = ['Income-based', 'Must be resident', 'Must have ID', 'Must have referral', 'Age requirements', 'Insurance required', 'No insurance required', 'Medicaid accepted', 'Sliding scale fees', 'Free services', 'Walk-ins welcome', 'Appointment required'];
+    const restrictionsOptions = ['No violent offenders', 'No sex offenders', 'Must be sober', 'Women only', 'Men only', 'Limited availability', 'Waiting list', 'Geographic restrictions'];
+
+    // ============== PRECISE WEB SCRAPER ==============
+    
+    const PROXY_URLS = [
+      'https://api.allorigins.win/raw?url=',
+      'https://corsproxy.io/?'
+    ];
+
+    async function fetchWithProxy(url) {
+      for (const proxy of PROXY_URLS) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          const resp = await fetch(proxy + encodeURIComponent(url), { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (resp.ok) return await resp.text();
+        } catch (e) { continue; }
+      }
+      throw new Error('Could not fetch the page. The website may be blocking automated requests.');
+    }
+
+    function showScrapeStatus(text) {
+      document.getElementById('scrape-status').classList.remove('hidden');
+      document.getElementById('scrape-status-text').textContent = text;
+      document.getElementById('scrape-error').classList.add('hidden');
+    }
+
+    function hideScrapeStatus() {
+      document.getElementById('scrape-status').classList.add('hidden');
+    }
+
+    function showScrapeError(text) {
+      hideScrapeStatus();
+      document.getElementById('scrape-error').classList.remove('hidden');
+      document.getElementById('scrape-error-text').textContent = text;
+    }
+
+    async function scrapeContactPage() {
+      const url = document.getElementById('url-input').value.trim();
+      if (!url) { toast('Please enter a URL'); return; }
+      
+      const btn = document.getElementById('scrape-btn');
+      const btnText = document.getElementById('scrape-btn-text');
+      btn.disabled = true;
+      btnText.textContent = '⏳ Extracting...';
+      
+      document.getElementById('scrape-result').classList.add('hidden');
+      document.getElementById('scrape-error').classList.add('hidden');
+      
+      try {
+        showScrapeStatus('Fetching page content...');
+        const html = await fetchWithProxy(url);
+        
+        showScrapeStatus('Analyzing page structure...');
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        
+        showScrapeStatus('Extracting contact information...');
+        const extracted = extractContactInfo(doc, url);
+        
+        hideScrapeStatus();
+        displayExtractedData(extracted, url);
+        
+      } catch (err) {
+        showScrapeError(err.message);
+      }
+      
+      btn.disabled = false;
+      btnText.textContent = '🔍 Extract Contact Info';
+    }
+
+    function extractContactInfo(doc, sourceUrl) {
+      const result = {
+        name: '',
+        phones: [],
+        emails: [],
+        faxes: [],
+        website: sourceUrl,
+        address: '',
+        city: '',
+        state: 'MD',
+        zip: '',
+        county: 'Allegany',
+        notes: '',
+        confidence: 0
+      };
+
+      const bodyText = doc.body ? doc.body.innerText : '';
+      const bodyHtml = doc.body ? doc.body.innerHTML : '';
+
+      // === EXTRACT ORGANIZATION NAME ===
+      // Try meta tags first
+      const ogTitle = doc.querySelector('meta[property="og:site_name"]')?.content || 
+                      doc.querySelector('meta[property="og:title"]')?.content;
+      const metaTitle = doc.querySelector('title')?.textContent;
+      
+      // Try common header patterns
+      const h1 = doc.querySelector('h1')?.textContent?.trim();
+      const logoAlt = doc.querySelector('img[class*="logo"], img[alt*="logo"], .logo img, header img')?.alt;
+      
+      // Try schema.org data
+      let schemaName = '';
+      doc.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+        try {
+          const data = JSON.parse(script.textContent);
+          if (data.name) schemaName = data.name;
+          if (data['@graph']) {
+            data['@graph'].forEach(item => {
+              if (item.name && (item['@type']?.includes('Organization') || item['@type']?.includes('LocalBusiness'))) {
+                schemaName = item.name;
+              }
+            });
+          }
+        } catch (e) {}
+      });
+
+      // Pick best name
+      result.name = schemaName || logoAlt || h1 || ogTitle || '';
+      if (result.name) {
+        result.name = result.name.replace(/\s*[-|–]\s*.*/g, '').trim(); // Remove taglines
+        result.name = result.name.replace(/^(Welcome to|About|Contact)\s+/i, '').trim();
+      }
+
+      // === EXTRACT PHONE NUMBERS (Precise) ===
+      // Look for phone patterns with labels
+      const phonePatterns = [
+        /(?:phone|tel|call|call us|telephone|office|main|contact)[:\s]*\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})/gi,
+        /(?:phone|tel|call)[:\s]*1?[-.\s]?\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})/gi,
+        /\(?(\d{3})\)?[-.\s](\d{3})[-.\s](\d{4})(?!\s*(?:fax|f\.))/gi
+      ];
+      
+      // Also check tel: links which are most reliable
+      doc.querySelectorAll('a[href^="tel:"]').forEach(link => {
+        const phone = link.href.replace('tel:', '').replace(/\D/g, '');
+        if (phone.length >= 10) {
+          const formatted = formatPhone(phone);
+          if (formatted && !result.phones.includes(formatted)) {
+            result.phones.push(formatted);
+          }
+        }
+      });
+
+      // Scan text for additional phones
+      phonePatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(bodyText)) !== null) {
+          const phone = formatPhone(match[0]);
+          if (phone && !result.phones.includes(phone) && !isFaxNumber(match[0], bodyText, match.index)) {
+            result.phones.push(phone);
+          }
+        }
+      });
+
+      // Limit to first 5 unique phones
+      result.phones = [...new Set(result.phones)].slice(0, 5);
+
+      // === EXTRACT FAX NUMBERS (Precise) ===
+      const faxPatterns = [
+        /(?:fax|f\.)[:\s]*\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})/gi,
+        /\(?(\d{3})\)?[-.\s](\d{3})[-.\s](\d{4})\s*(?:\(fax\)|fax)/gi
+      ];
+      
+      faxPatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(bodyText)) !== null) {
+          const fax = formatPhone(match[0]);
+          if (fax && !result.faxes.includes(fax)) {
+            result.faxes.push(fax);
+          }
+        }
+      });
+      result.faxes = [...new Set(result.faxes)].slice(0, 3);
+
+      // === EXTRACT EMAILS (Precise) ===
+      // Check mailto: links first (most reliable)
+      doc.querySelectorAll('a[href^="mailto:"]').forEach(link => {
+        const email = link.href.replace('mailto:', '').split('?')[0].toLowerCase().trim();
+        if (isValidEmail(email) && !result.emails.includes(email)) {
+          result.emails.push(email);
+        }
+      });
+
+      // Scan for email patterns
+      const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+      let emailMatch;
+      while ((emailMatch = emailPattern.exec(bodyText)) !== null) {
+        const email = emailMatch[0].toLowerCase();
+        if (isValidEmail(email) && !result.emails.includes(email)) {
+          result.emails.push(email);
+        }
+      }
+      result.emails = [...new Set(result.emails)].slice(0, 5);
+
+      // === EXTRACT ADDRESS (Precise) ===
+      // Look for address in schema.org
+      doc.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+        try {
+          const data = JSON.parse(script.textContent);
+          const extractAddress = (obj) => {
+            if (obj.address) {
+              if (typeof obj.address === 'string') {
+                result.address = obj.address;
+              } else {
+                result.address = obj.address.streetAddress || '';
+                result.city = obj.address.addressLocality || '';
+                result.state = obj.address.addressRegion || 'MD';
+                result.zip = obj.address.postalCode || '';
+              }
+            }
+          };
+          extractAddress(data);
+          if (data['@graph']) data['@graph'].forEach(extractAddress);
+        } catch (e) {}
+      });
+
+      // If no schema address, try patterns
+      if (!result.address) {
+        // Common address patterns
+        const addressPatterns = [
+          /(\d{1,5}\s+[A-Za-z0-9\s,.'#-]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Circle|Cir|Place|Pl|Pike|Highway|Hwy)\.?)[,\s]+([A-Za-z\s]+)[,\s]+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)/gi,
+          /(\d{1,5}\s+[A-Za-z0-9\s,.'#-]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct)\.?)[,\s]*([A-Za-z\s]+)[,\s]*(?:MD|Maryland)\s*(\d{5})?/gi
+        ];
+
+        for (const pattern of addressPatterns) {
+          const match = pattern.exec(bodyText);
+          if (match) {
+            result.address = match[1]?.trim() || '';
+            result.city = match[2]?.trim() || '';
+            result.state = match[3]?.trim() || 'MD';
+            result.zip = match[4]?.trim() || '';
+            break;
+          }
+        }
+      }
+
+      // Extract ZIP if not found
+      if (!result.zip) {
+        const zipMatch = bodyText.match(/\b(21\d{3}|215\d{2}|217\d{2})\b/);
+        if (zipMatch) result.zip = zipMatch[1];
+      }
+
+      // Detect county from address/city
+      const locationText = (result.address + ' ' + result.city + ' ' + bodyText).toLowerCase();
+      for (const county of counties) {
+        if (locationText.includes(county.toLowerCase())) {
+          result.county = county;
+          break;
+        }
+      }
+      // Also check common city-to-county mappings
+      const cityCountyMap = {
+        'cumberland': 'Allegany', 'frostburg': 'Allegany', 'lavale': 'Allegany',
+        'oakland': 'Garrett', 'accident': 'Garrett', 'grantsville': 'Garrett',
+        'hagerstown': 'Washington', 'williamsport': 'Washington', 'boonsboro': 'Washington',
+        'frederick': 'Frederick', 'thurmont': 'Frederick', 'brunswick': 'Frederick',
+        'westminster': 'Carroll', 'taneytown': 'Carroll', 'sykesville': 'Carroll'
+      };
+      for (const [city, county] of Object.entries(cityCountyMap)) {
+        if (locationText.includes(city)) {
+          result.county = county;
+          break;
+        }
+      }
+
+      // === EXTRACT HOURS/NOTES ===
+      const hoursPatterns = [
+        /(?:hours|open)[:\s]*((?:mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[^<\n]{10,100})/gi,
+        /((?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*[-–:]\s*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)?[^<\n]{5,80})/gi
+      ];
+      for (const pattern of hoursPatterns) {
+        const match = pattern.exec(bodyText);
+        if (match) {
+          result.notes = 'Hours: ' + match[1].trim().substring(0, 200);
+          break;
+        }
+      }
+
+      // Calculate confidence score
+      let confidence = 0;
+      if (result.name) confidence += 25;
+      if (result.phones.length > 0) confidence += 30;
+      if (result.emails.length > 0) confidence += 15;
+      if (result.address) confidence += 20;
+      if (result.city) confidence += 5;
+      if (result.zip) confidence += 5;
+      result.confidence = Math.min(confidence, 100);
+
+      return result;
+    }
+
+    function formatPhone(phoneStr) {
+      const digits = phoneStr.replace(/\D/g, '');
+      if (digits.length === 10) {
+        return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+      } else if (digits.length === 11 && digits[0] === '1') {
+        return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+      }
+      return null;
+    }
+
+    function isFaxNumber(phoneStr, fullText, index) {
+      // Check if "fax" appears near this phone number
+      const surroundingText = fullText.substring(Math.max(0, index - 30), index + phoneStr.length + 10).toLowerCase();
+      return surroundingText.includes('fax');
+    }
+
+    function isValidEmail(email) {
+      if (!email || email.length < 5) return false;
+      // Filter out common non-contact emails
+      const invalidPatterns = ['example.com', 'yourdomain', 'email.com', 'domain.com', 'test.com', 'sentry.io', 'wixpress', 'googleapis', 'cloudflare'];
+      for (const pattern of invalidPatterns) {
+        if (email.includes(pattern)) return false;
+      }
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function displayExtractedData(data, sourceUrl) {
+      document.getElementById('scrape-result').classList.remove('hidden');
+      
+      // Populate fields
+      document.getElementById('scraped-name').value = data.name || '';
+      document.getElementById('scraped-website').value = data.website || sourceUrl;
+      document.getElementById('scraped-address').value = data.address || '';
+      document.getElementById('scraped-city').value = data.city || '';
+      document.getElementById('scraped-state').value = data.state || 'MD';
+      document.getElementById('scraped-zip').value = data.zip || '';
+      document.getElementById('scraped-county').value = data.county || 'Allegany';
+      document.getElementById('scraped-notes').value = data.notes || '';
+
+      // Populate phones
+      const phonesContainer = document.getElementById('scraped-phones-container');
+      phonesContainer.innerHTML = '';
+      if (data.phones.length > 0) {
+        data.phones.forEach(phone => addScrapedPhone(phone));
+      } else {
+        addScrapedPhone('');
+      }
+
+      // Populate emails
+      const emailsContainer = document.getElementById('scraped-emails-container');
+      emailsContainer.innerHTML = '';
+      if (data.emails.length > 0) {
+        data.emails.forEach(email => addScrapedEmail(email));
+      } else {
+        addScrapedEmail('');
+      }
+
+      // Populate fax
+      const faxContainer = document.getElementById('scraped-fax-container');
+      faxContainer.innerHTML = '';
+      if (data.faxes.length > 0) {
+        data.faxes.forEach(fax => addScrapedFax(fax));
+      } else {
+        addScrapedFax('');
+      }
+
+      // Populate service type checkboxes
+      const servicesContainer = document.getElementById('scraped-services');
+      servicesContainer.innerHTML = getServiceTypes().map(s => 
+        `<label class="service-checkbox"><input type="checkbox" name="scrapedServices" value="${s}" class="w-4 h-4"><span>${s}</span></label>`
+      ).join('');
+
+      // Show confidence indicator
+      const confEl = document.getElementById('confidence-indicator');
+      const confClass = data.confidence >= 70 ? 'confidence-high' : data.confidence >= 40 ? 'confidence-medium' : 'confidence-low';
+      const confText = data.confidence >= 70 ? 'High' : data.confidence >= 40 ? 'Medium' : 'Low';
+      confEl.innerHTML = `<span class="confidence-badge ${confClass}">${confText} Confidence (${data.confidence}%)</span>`;
+
+      // Scroll to result
+      document.getElementById('scrape-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function addScrapedPhone(value = '') {
+      const container = document.getElementById('scraped-phones-container');
+      const div = document.createElement('div');
+      div.className = 'flex gap-2 mb-1';
+      div.innerHTML = `<input type="tel" value="${value}" placeholder="(301) 555-1234" class="flex-1 px-2 py-1 border border-gray-200 rounded text-sm"><button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-sm px-2">✕</button>`;
+      container.appendChild(div);
+    }
+
+    function addScrapedEmail(value = '') {
+      const container = document.getElementById('scraped-emails-container');
+      const div = document.createElement('div');
+      div.className = 'flex gap-2 mb-1';
+      div.innerHTML = `<input type="email" value="${value}" placeholder="email@example.com" class="flex-1 px-2 py-1 border border-gray-200 rounded text-sm"><button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-sm px-2">✕</button>`;
+      container.appendChild(div);
+    }
+
+    function addScrapedFax(value = '') {
+      const container = document.getElementById('scraped-fax-container');
+      const div = document.createElement('div');
+      div.className = 'flex gap-2 mb-1';
+      div.innerHTML = `<input type="tel" value="${value}" placeholder="(301) 555-1235" class="flex-1 px-2 py-1 border border-gray-200 rounded text-sm"><button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-sm px-2">✕</button>`;
+      container.appendChild(div);
+    }
+
+    function cancelScrape() {
+      document.getElementById('scrape-result').classList.add('hidden');
+      document.getElementById('url-input').value = '';
+    }
+
+    async function addScrapedResource() {
+      const name = document.getElementById('scraped-name').value.trim();
+      if (!name) { toast('Please enter an organization name'); return; }
+
+      const phones = Array.from(document.querySelectorAll('#scraped-phones-container input')).map(i => i.value.trim()).filter(Boolean);
+      if (phones.length === 0) { toast('Please enter at least one phone number'); return; }
+
+      const services = Array.from(document.querySelectorAll('input[name="scrapedServices"]:checked')).map(c => c.value);
+      if (services.length === 0) { toast('Please select at least one service type'); return; }
+
+      const resource = {
+        id: Date.now().toString(),
+        organizationName: name,
+        serviceTypes: services,
+        county: document.getElementById('scraped-county').value,
+        populations: ['General Population'],
+        phones: phones,
+        faxes: Array.from(document.querySelectorAll('#scraped-fax-container input')).map(i => i.value.trim()).filter(Boolean),
+        emails: Array.from(document.querySelectorAll('#scraped-emails-container input')).map(i => i.value.trim()).filter(Boolean),
+        website: document.getElementById('scraped-website').value.trim(),
+        address: document.getElementById('scraped-address').value.trim(),
+        city: document.getElementById('scraped-city').value.trim(),
+        state: document.getElementById('scraped-state').value.trim() || 'MD',
+        zip: document.getElementById('scraped-zip').value.trim(),
+        servicesOffered: [],
+        eligibility: [],
+        restrictions: [],
+        notes: document.getElementById('scraped-notes').value.trim()
+      };
+
+      resources.push(resource);
+      resources.sort((a, b) => (a.organizationName || '').localeCompare(b.organizationName || ''));
+      await saveToCloud();
+      
+      document.getElementById('scrape-result').classList.add('hidden');
+      document.getElementById('url-input').value = '';
+      updateUI();
+      toast(`✓ "${name}" added to Resource Hub!`);
+    }
+
+    // ============== CORE FUNCTIONS ==============
+
+    function toggleSelection(id, event) { if (event) event.stopPropagation(); if (selectedResources.has(id)) selectedResources.delete(id); else selectedResources.add(id); updateSelectionUI(); doSearch(); }
+    function selectAllVisible() { currentFilteredResults.forEach(r => selectedResources.add(r.id)); updateSelectionUI(); doSearch(); }
+    function clearSelections() { selectedResources.clear(); updateSelectionUI(); doSearch(); }
+    function updateSelectionUI() {
+      const count = selectedResources.size;
+      document.getElementById('selection-count').textContent = count;
+      document.getElementById('cart-badge').textContent = count;
+      const cartToggle = document.getElementById('cart-toggle');
+      if (count > 0) cartToggle.classList.remove('hidden'); else { cartToggle.classList.add('hidden'); document.getElementById('selection-cart').classList.add('hidden'); }
+      document.getElementById('selection-list').innerHTML = count === 0 ? '<p class="text-slate text-sm text-center py-4">No resources selected</p>' : Array.from(selectedResources).map(id => { const r = resources.find(x => x.id === id); if (!r) return ''; const phone = (r.phones && r.phones[0]) || ''; return `<div class="p-2 border-b last:border-0"><div class="flex justify-between items-start"><div><p class="font-medium text-sm">${r.organizationName || 'Unnamed'}</p>${phone ? `<p class="text-xs text-primary">${phone}</p>` : ''}</div><button onclick="toggleSelection('${id}')" class="text-red-500 hover:text-red-700 text-sm">✕</button></div></div>`; }).join('');
+    }
+    function toggleCart() { document.getElementById('selection-cart').classList.toggle('hidden'); }
+    function printSelections() {
+      if (selectedResources.size === 0) { toast('No resources selected'); return; }
+      const printArea = document.getElementById('print-area');
+      const list = Array.from(selectedResources).map(id => resources.find(x => x.id === id)).filter(Boolean);
+      printArea.innerHTML = `<div style="font-family: Arial, sans-serif; padding: 20px;"><h1 style="color: #2563EB;">Western Maryland Resource Hub</h1><p style="color: #666;">Selected Resources - ${new Date().toLocaleDateString()}</p><hr style="margin: 20px 0;">${list.map(r => { const phones = r.phones || []; const emails = r.emails || []; return `<div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #ddd;"><h2 style="color: #1e40af; margin: 0 0 8px 0;">${r.organizationName}</h2><p style="color: #666;">${(r.serviceTypes || []).join(', ')}</p><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; margin-top: 10px;">${phones.length ? `<div><strong>📞</strong> ${phones.join(', ')}</div>` : ''}${emails.length ? `<div><strong>📧</strong> ${emails.join(', ')}</div>` : ''}${r.website ? `<div><strong>🌐</strong> ${r.website}</div>` : ''}${r.address ? `<div><strong>📍</strong> ${r.address}, ${r.city || ''}, ${r.state || 'MD'} ${r.zip || ''}</div>` : ''}<div><strong>County:</strong> ${r.county || 'N/A'}</div></div></div>`; }).join('')}</div>`;
+      printArea.classList.remove('hidden'); window.print(); setTimeout(() => printArea.classList.add('hidden'), 100);
+    }
+
+    function addContactField(type, containerId, value = '') { const container = document.getElementById(containerId || type + '-container'); if (!container) return; const div = document.createElement('div'); div.className = 'contact-row'; const inputType = type === 'email' ? 'email' : 'tel'; const placeholder = type === 'phone' ? '(301) 555-1234' : type === 'fax' ? '(301) 555-1235' : 'email@example.com'; div.innerHTML = `<input type="${inputType}" value="${value}" placeholder="${placeholder}" class="w-full px-4 py-2 border border-warm-border rounded-lg">`; container.appendChild(div); }
+    function getContactValues(type, containerId) { const container = document.getElementById(containerId || type + '-container'); if (!container) return []; return Array.from(container.querySelectorAll('input')).map(i => i.value.trim()).filter(Boolean); }
+    function initContactFields() { ['phone', 'fax', 'email'].forEach(type => { const container = document.getElementById(type + '-container'); if (container) { container.innerHTML = ''; addContactField(type); } }); }
+
+    function populatePopulationCheckboxes(containerId = 'population-checkboxes', selected = []) { const el = document.getElementById(containerId); if (!el) return; const name = containerId.includes('edit') ? 'editPopulations' : 'populations'; el.innerHTML = populations.map(p => `<label class="service-checkbox"><input type="checkbox" name="${name}" value="${p}" ${selected.includes(p) ? 'checked' : ''} class="w-4 h-4"><span>${p}</span></label>`).join(''); }
+    function populateServicesOfferedCheckboxes(containerId, selected = [], nameAttr) { const el = document.getElementById(containerId); if (!el) return; let html = ''; Object.entries(servicesOfferedCategories).forEach(([cat, opts]) => { html += `<div class="category-header">${cat}</div><div class="checkbox-grid">`; opts.forEach(o => { html += `<label class="service-checkbox"><input type="checkbox" name="${nameAttr}" value="${o}" ${selected.includes(o) ? 'checked' : ''} class="w-4 h-4"><span>${o}</span></label>`; }); html += '</div>'; }); el.innerHTML = html; }
+    function populateOptionsCheckboxes(containerId, options, selected = [], nameAttr) { const el = document.getElementById(containerId); if (!el) return; el.innerHTML = options.map(o => `<label class="service-checkbox"><input type="checkbox" name="${nameAttr}" value="${o}" ${selected.includes(o) ? 'checked' : ''} class="w-4 h-4"><span>${o}</span></label>`).join(''); }
+    function getCheckedValues(name) { return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(c => c.value); }
+
+    function saveServiceCategories() { localStorage.setItem('wmrh_serviceCategories', JSON.stringify(serviceCategories)); populateDropdowns(); populateServiceCheckboxes(); updateManageServicesList(); populateCategoryDropdowns(); populateDiscoverDropdowns(); }
+    function quickAddServiceType() { const name = document.getElementById('quick-service-name').value.trim(); const category = document.getElementById('quick-service-category').value; if (!name || !category) { toast('Enter name and select category'); return; } if (getServiceTypes().map(s => s.toLowerCase()).includes(name.toLowerCase())) { toast('Already exists'); return; } serviceCategories[category].push(name); saveServiceCategories(); document.getElementById('quick-service-name').value = ''; toast('Added!'); }
+    function addNewServiceType() { const name = document.getElementById('new-service-name').value.trim(); const category = document.getElementById('new-service-category').value; if (!name || !category) { toast('Enter name and select category'); return; } if (getServiceTypes().map(s => s.toLowerCase()).includes(name.toLowerCase())) { toast('Already exists'); return; } serviceCategories[category].push(name); saveServiceCategories(); document.getElementById('new-service-name').value = ''; toast('Added!'); }
+    function addNewCategory() { const name = document.getElementById('new-category-name').value.trim(); if (!name) { toast('Enter a name'); return; } if (serviceCategories[name]) { toast('Already exists'); return; } serviceCategories[name] = []; saveServiceCategories(); document.getElementById('new-category-name').value = ''; toast('Added!'); }
+    function removeServiceType(category, service) { if (!confirm(`Remove "${service}"?`)) return; serviceCategories[category] = serviceCategories[category].filter(s => s !== service); if (serviceCategories[category].length === 0 && confirm(`Remove empty category?`)) delete serviceCategories[category]; saveServiceCategories(); }
+    function populateCategoryDropdowns() { const cats = Object.keys(serviceCategories); ['new-service-category', 'quick-service-category'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<option value="">Select Category</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join(''); }); }
+    function populateDiscoverDropdowns() { const serviceTypes = getServiceTypes(); const countyEl = document.getElementById('discover-county'); const serviceEl = document.getElementById('discover-service'); if (countyEl) countyEl.innerHTML = '<option value="">Any County</option>' + counties.map(c => `<option value="${c}">${c}</option>`).join(''); if (serviceEl) serviceEl.innerHTML = '<option value="">Any Service</option>' + serviceTypes.map(s => `<option value="${s}">${s}</option>`).join(''); }
+    function updateManageServicesList() { const el = document.getElementById('manage-services-list'); if (!el) return; el.innerHTML = Object.entries(serviceCategories).map(([cat, svcs]) => `<div class="mb-4"><div class="category-header">${cat}</div><div class="flex flex-wrap gap-2">${svcs.map(s => `<span onclick="removeServiceType('${cat.replace(/'/g, "\\'")}', '${s.replace(/'/g, "\\'")}')" class="px-3 py-1 bg-primary-pale text-primary text-sm rounded-full cursor-pointer hover:bg-red-100 hover:text-red-600">${s} ✕</span>`).join('')}</div></div>`).join(''); }
+
+    async function init() {
+      document.getElementById('loading-status').textContent = 'Connecting to cloud...';
+      const loadingTimeout = setTimeout(() => { loadFromLocalBackup(); finishInit(); }, 8000);
+      if (db) {
+        try {
+          const snapshot = await db.ref('resources').once('value');
+          clearTimeout(loadingTimeout);
+          const data = snapshot.val();
+          if (data && Object.keys(data).length > 0) {
+            resources = Object.values(data).map(r => ({ ...r, serviceTypes: Array.isArray(r.serviceTypes) ? r.serviceTypes : ['Food Assistance'], phones: Array.isArray(r.phones) ? r.phones : (r.phone ? [r.phone] : []), faxes: Array.isArray(r.faxes) ? r.faxes : [], emails: Array.isArray(r.emails) ? r.emails : (r.email ? [r.email] : []), populations: Array.isArray(r.populations) ? r.populations : ['General Population'], servicesOffered: Array.isArray(r.servicesOffered) ? r.servicesOffered : [], eligibility: Array.isArray(r.eligibility) ? r.eligibility : [], restrictions: Array.isArray(r.restrictions) ? r.restrictions : [] }));
+          } else { resources = []; }
+          firebaseReady = true;
+          updateSyncStatus('online');
+          setupRealtimeSync();
+        } catch (err) { clearTimeout(loadingTimeout); loadFromLocalBackup(); }
+      } else { clearTimeout(loadingTimeout); loadFromLocalBackup(); }
+      finishInit();
+    }
+
+    function finishInit() {
+      saveLocalBackup();
+      initialLoadComplete = true;
+      populateDropdowns();
+      populateServiceCheckboxes();
+      populatePopulationCheckboxes();
+      populateServicesOfferedCheckboxes('services-offered-checkboxes', [], 'servicesOffered');
+      populateOptionsCheckboxes('eligibility-checkboxes', eligibilityOptions, [], 'eligibility');
+      populateOptionsCheckboxes('restrictions-checkboxes', restrictionsOptions, [], 'restrictions');
+      populateCategoryDropdowns();
+      populateDiscoverDropdowns();
+      updateManageServicesList();
+      initContactFields();
+      document.getElementById('add-form').onsubmit = addResource;
+      document.getElementById('loading-overlay').style.display = 'none';
+      showPage('dashboard');
+      updateUI();
+    }
+
+    function setupRealtimeSync() { if (!db) return; db.ref('resources').on('value', (snapshot) => { if (!initialLoadComplete) return; const data = snapshot.val(); if (data) { resources = Object.values(data).map(r => ({ ...r, serviceTypes: Array.isArray(r.serviceTypes) ? r.serviceTypes : ['Food Assistance'], phones: Array.isArray(r.phones) ? r.phones : [], faxes: Array.isArray(r.faxes) ? r.faxes : [], emails: Array.isArray(r.emails) ? r.emails : [], populations: Array.isArray(r.populations) ? r.populations : ['General Population'], servicesOffered: Array.isArray(r.servicesOffered) ? r.servicesOffered : [], eligibility: Array.isArray(r.eligibility) ? r.eligibility : [], restrictions: Array.isArray(r.restrictions) ? r.restrictions : [] })); saveLocalBackup(); updateUI(); } }); }
+    function loadFromLocalBackup() { const backup = localStorage.getItem('wmrh_cloud_backup'); if (backup) { try { resources = JSON.parse(backup); } catch(e) { resources = []; } } updateSyncStatus('offline'); }
+    function saveLocalBackup() { localStorage.setItem('wmrh_cloud_backup', JSON.stringify(resources)); }
+    function updateSyncStatus(status) { const el = document.getElementById('sync-status'); if (status === 'online') { el.className = 'sync-status sync-online'; el.innerHTML = '🟢 Cloud Synced'; } else if (status === 'saving') { el.className = 'sync-status sync-saving'; el.innerHTML = '🟡 Saving...'; } else { el.className = 'sync-status sync-offline'; el.innerHTML = '🔴 Offline'; } }
+    async function saveToCloud() { if (!db || !firebaseReady) { saveLocalBackup(); toast('Saved locally'); return false; } updateSyncStatus('saving'); try { const obj = {}; resources.forEach(r => { obj[r.id] = r; }); await db.ref('resources').set(obj); saveLocalBackup(); updateSyncStatus('online'); return true; } catch (err) { updateSyncStatus('offline'); saveLocalBackup(); toast('Cloud save failed'); return false; } }
+
+    function normalizeName(name) { return (name || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\b(the|of|and|for|in|at|a|an)\b/g, '').replace(/\s+/g, ' ').trim(); }
+    function calculateSimilarity(str1, str2) { const s1 = normalizeName(str1), s2 = normalizeName(str2); if (s1 === s2) return 1; if (s1.includes(s2) || s2.includes(s1)) return 0.9; const words1 = s1.split(' '), words2 = s2.split(' '); const common = words1.filter(w => words2.includes(w) && w.length > 2); return (common.length * 2) / (words1.length + words2.length); }
+    function findDuplicateResource(name, excludeId = null) { for (const r of resources) { if (excludeId && r.id === excludeId) continue; if (calculateSimilarity(name, r.organizationName) >= 0.7) return { resource: r }; } return null; }
+    function checkDuplicateName(name) { const statusEl = document.getElementById('name-status'); const warningEl = document.getElementById('duplicate-warning'); if (!name || name.length < 3) { statusEl.innerHTML = ''; warningEl.classList.add('hidden'); return; } const dup = findDuplicateResource(name); if (dup) { foundDuplicateId = dup.resource.id; statusEl.innerHTML = `<span class="text-amber-600">⚠️ Similar: "${dup.resource.organizationName}"</span>`; document.getElementById('duplicate-warning-text').textContent = `"${dup.resource.organizationName}" may be a duplicate.`; warningEl.classList.remove('hidden'); } else { statusEl.innerHTML = '<span class="text-green-600">✓ No duplicates</span>'; warningEl.classList.add('hidden'); foundDuplicateId = null; } }
+    function viewDuplicateResource() { if (foundDuplicateId) showResource(foundDuplicateId); }
+    function dismissDuplicateWarning() { document.getElementById('duplicate-warning').classList.add('hidden'); }
+    function findDuplicates() { const found = []; for (let i = 0; i < resources.length; i++) { for (let j = i + 1; j < resources.length; j++) { if (calculateSimilarity(resources[i].organizationName, resources[j].organizationName) >= 0.7) found.push({ r1: resources[i], r2: resources[j] }); } } const el = document.getElementById('duplicates-result'); el.innerHTML = found.length === 0 ? '<p class="text-green-600 font-medium">✓ No duplicates found!</p>' : `<p class="text-amber-600 font-medium mb-3">⚠️ Found ${found.length} potential duplicate(s):</p>` + found.map(d => `<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-2"><p class="font-medium">"${d.r1.organizationName}"</p><p class="text-sm text-slate">vs</p><p class="font-medium">"${d.r2.organizationName}"</p><div class="mt-2 flex gap-2"><button onclick="showResource('${d.r1.id}')" class="px-2 py-1 text-xs bg-white border rounded">View 1st</button><button onclick="showResource('${d.r2.id}')" class="px-2 py-1 text-xs bg-white border rounded">View 2nd</button></div></div>`).join(''); }
+
+    function populateDropdowns() { const serviceTypes = getServiceTypes(); const selects = { 'filter-county': counties, 'filter-service': serviceTypes, 'filter-population': populations, 'f-county': counties }; Object.entries(selects).forEach(([id, opts]) => { const el = document.getElementById(id); if (el) { const firstOpt = el.querySelector('option'); el.innerHTML = ''; if (firstOpt) el.appendChild(firstOpt); opts.forEach(o => { el.innerHTML += `<option value="${o}">${o}</option>`; }); } }); }
+    function populateServiceCheckboxes(containerId = 'service-checkboxes', selected = []) { const el = document.getElementById(containerId); if (!el) return; let html = ''; Object.entries(serviceCategories).forEach(([cat, svcs]) => { html += `<div class="category-header">${cat}</div><div class="checkbox-grid">`; svcs.forEach(s => { html += `<label class="service-checkbox"><input type="checkbox" name="${containerId === 'service-checkboxes' ? 'serviceTypes' : 'editServiceTypes'}" value="${s}" ${selected.includes(s) ? 'checked' : ''} class="w-4 h-4"><span>${s}</span></label>`; }); html += '</div>'; }); el.innerHTML = html; }
+    function getSelectedServices(name = 'serviceTypes') { return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(c => c.value); }
+
+    function showPage(page) { document.querySelectorAll('.page').forEach(p => p.classList.add('hidden')); document.getElementById('page-' + page).classList.remove('hidden'); document.querySelectorAll('.nav-btn').forEach(b => { b.classList.remove('bg-primary', 'text-white'); b.classList.add('text-gray-600'); }); const btn = document.querySelector(`[data-page="${page}"]`); if (btn) { btn.classList.add('bg-primary', 'text-white'); btn.classList.remove('text-gray-600'); } if (page === 'dashboard') updateDashboard(); if (page === 'search') doSearch(); if (page === 'import') document.getElementById('export-count').textContent = resources.length; if (page === 'manage') updateManageServicesList(); if (page === 'add') { initContactFields(); populateCategoryDropdowns(); populatePopulationCheckboxes(); populateServicesOfferedCheckboxes('services-offered-checkboxes', [], 'servicesOffered'); populateOptionsCheckboxes('eligibility-checkboxes', eligibilityOptions, [], 'eligibility'); populateOptionsCheckboxes('restrictions-checkboxes', restrictionsOptions, [], 'restrictions'); } if (page === 'discover') populateDiscoverDropdowns(); }
+    function updateUI() { updateDashboard(); doSearch(); const el = document.getElementById('export-count'); if (el) el.textContent = resources.length; }
+    function updateDashboard() { document.getElementById('stat-total').textContent = resources.length; const svcs = new Set(); resources.forEach(r => (r.serviceTypes || []).forEach(s => svcs.add(s))); document.getElementById('stat-services').textContent = svcs.size; document.getElementById('stat-counties').textContent = new Set(resources.map(r => r.county)).size; const pops = new Set(); resources.forEach(r => (r.populations || []).forEach(p => pops.add(p))); document.getElementById('stat-populations').textContent = pops.size; const svcCounts = {}; resources.forEach(r => (r.serviceTypes || []).forEach(s => { svcCounts[s] = (svcCounts[s] || 0) + 1; })); document.getElementById('chart-services').innerHTML = Object.entries(svcCounts).sort((a,b) => b[1]-a[1]).slice(0,8).map(([n,c]) => `<div class="flex justify-between py-2 border-b last:border-0"><span class="text-sm">${n}</span><span class="px-2 py-1 bg-primary-pale text-primary text-xs rounded-full">${c}</span></div>`).join(''); const cntCounts = {}; resources.forEach(r => { cntCounts[r.county] = (cntCounts[r.county] || 0) + 1; }); document.getElementById('chart-counties').innerHTML = Object.entries(cntCounts).sort((a,b) => b[1]-a[1]).map(([n,c]) => `<div class="flex justify-between py-2 border-b last:border-0"><span class="text-sm">${n}</span><span class="px-2 py-1 bg-sky-100 text-sky text-xs rounded-full">${c}</span></div>`).join(''); }
+
+    function doSearch() { const q = document.getElementById('search-input').value.trim(); const county = document.getElementById('filter-county').value; const svc = document.getElementById('filter-service').value; const pop = document.getElementById('filter-population').value; let filtered = [...resources]; if (county) filtered = filtered.filter(r => r.county === county); if (svc) filtered = filtered.filter(r => (r.serviceTypes || []).includes(svc)); if (pop) filtered = filtered.filter(r => (r.populations || []).includes(pop)); if (q) { const queryLower = q.toLowerCase(); const queryNormalized = normalizeName(q); filtered = filtered.map(r => { const nameLower = (r.organizationName || '').toLowerCase(); const nameNormalized = normalizeName(r.organizationName); let score = 0, isExactMatch = false; if (nameLower === queryLower || nameNormalized === queryNormalized) { score = 1000; isExactMatch = true; } else if (nameLower.startsWith(queryLower)) { score = 500; } else if (nameLower.includes(queryLower)) { score = 300; } else { const queryWords = queryLower.split(/\s+/).filter(w => w.length > 1); const nameWords = nameLower.split(/\s+/); score += queryWords.filter(qw => nameWords.some(nw => nw === qw)).length * 100; score += queryWords.filter(qw => nameWords.some(nw => nw.includes(qw) || qw.includes(nw))).length * 50; const otherText = [(r.serviceTypes || []).join(' '), (r.populations || []).join(' '), r.county || '', r.city || ''].join(' ').toLowerCase(); score += queryWords.filter(qw => otherText.includes(qw)).length * 20; } return { ...r, _score: score, _isExactMatch: isExactMatch }; }).filter(r => r._score > 0); filtered.sort((a, b) => b._score !== a._score ? b._score - a._score : (a.organizationName || '').localeCompare(b.organizationName || '')); } else { filtered.sort((a, b) => (a.organizationName || '').localeCompare(b.organizationName || '')); filtered = filtered.map(r => ({ ...r, _score: 0, _isExactMatch: false })); } currentFilteredResults = filtered; document.getElementById('results-count').textContent = `${filtered.length} resource${filtered.length !== 1 ? 's' : ''}`; document.getElementById('results').innerHTML = filtered.length ? filtered.map(r => { const isSelected = selectedResources.has(r.id); const phone = (r.phones && r.phones[0]) || ''; const email = (r.emails && r.emails[0]) || ''; const isExact = r._isExactMatch; return `<div class="bg-white rounded-xl p-5 card-shadow transition-all ${isSelected ? 'ring-2 ring-primary bg-primary-pale/30' : ''} ${isExact ? 'exact-match' : ''}"><div class="flex items-start gap-3"><input type="checkbox" ${isSelected ? 'checked' : ''} onclick="toggleSelection('${r.id}', event)" class="w-5 h-5 mt-1 cursor-pointer"><div class="flex-1 cursor-pointer" onclick="showResource('${r.id}')"><div class="flex items-center gap-2 mb-1"><h3 class="text-lg text-primary-dark font-semibold">${r.organizationName || 'Unnamed'}</h3>${isExact ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Exact</span>' : ''}</div><p class="text-slate text-sm mb-2">${r.city || ''}, ${r.county || ''}</p>${phone ? `<p class="text-sm text-primary mb-1">📞 ${phone}</p>` : ''}${email ? `<p class="text-sm text-primary mb-2">📧 ${email}</p>` : ''}<div class="flex flex-wrap gap-1">${(r.serviceTypes||[]).slice(0,3).map(s => `<span class="px-2 py-0.5 bg-primary-pale text-primary text-xs rounded-full">${s}</span>`).join('')}${(r.serviceTypes||[]).length > 3 ? `<span class="px-2 py-0.5 bg-gray-100 text-xs rounded-full">+${r.serviceTypes.length-3}</span>` : ''}</div></div></div></div>`; }).join('') : '<p class="text-slate text-center py-8 col-span-full">No resources found.</p>'; }
+    function resetFilters() { document.getElementById('search-input').value = ''; document.getElementById('filter-county').value = ''; document.getElementById('filter-service').value = ''; document.getElementById('filter-population').value = ''; doSearch(); }
+
+    function showResource(id) { const r = resources.find(x => x.id === id); if (!r) return; document.getElementById('modal-title').textContent = r.organizationName || 'Unnamed'; const phones = r.phones || []; const faxes = r.faxes || []; const emails = r.emails || []; const pops = r.populations || []; document.getElementById('modal-body').innerHTML = `<div class="flex flex-wrap gap-2 mb-4">${(r.serviceTypes||[]).map(s => `<span class="px-3 py-1 bg-primary-pale text-primary text-sm rounded-full">${s}</span>`).join('')}<span class="px-3 py-1 bg-sky-100 text-sky-dark text-sm rounded-full">${r.county || 'No county'}</span></div>${pops.length ? `<p class="text-sm text-slate mb-3"><strong>Populations:</strong> ${pops.join(', ')}</p>` : ''}<div class="space-y-3">${phones.length ? `<div><strong>📞 Phone:</strong><div class="ml-6">${phones.map(p => `<a href="tel:${p}" class="block text-primary">${p}</a>`).join('')}</div></div>` : ''}${faxes.length ? `<div><strong>📠 Fax:</strong><div class="ml-6">${faxes.join(', ')}</div></div>` : ''}${emails.length ? `<div><strong>📧 Email:</strong><div class="ml-6">${emails.map(e => `<a href="mailto:${e}" class="block text-primary">${e}</a>`).join('')}</div></div>` : ''}${r.website ? `<p><strong>🌐</strong> <a href="${r.website}" target="_blank" class="text-primary">${r.website}</a></p>` : ''}${r.address ? `<p><strong>📍</strong> ${r.address}, ${r.city || ''}, ${r.state || 'MD'} ${r.zip || ''}</p>` : ''}${r.servicesOffered && r.servicesOffered.length ? `<div class="pt-3 border-t"><strong>Services:</strong> ${r.servicesOffered.join(', ')}</div>` : ''}${r.eligibility && r.eligibility.length ? `<div><strong>Eligibility:</strong> ${r.eligibility.join(', ')}</div>` : ''}${r.restrictions && r.restrictions.length ? `<div class="p-3 bg-red-50 border border-red-200 rounded-lg"><strong class="text-red-700">⚠️ Restrictions:</strong> ${r.restrictions.join(', ')}</div>` : ''}${r.notes ? `<div><strong>Notes:</strong> ${r.notes}</div>` : ''}</div>`; document.getElementById('modal-footer').innerHTML = `<div class="flex justify-between"><button onclick="deleteResource('${r.id}')" class="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50">Delete</button><div class="flex gap-3">${r.address ? `<a href="https://www.google.com/maps/search/${encodeURIComponent((r.address||'')+', '+(r.city||'')+', '+(r.state||'MD'))}" target="_blank" class="px-4 py-2 border rounded-lg">📍 Map</a>` : ''}<button onclick="editResource('${r.id}')" class="px-4 py-2 bg-primary text-white rounded-lg">✏️ Edit</button></div></div>`; document.getElementById('modal').classList.remove('hidden'); }
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+    async function deleteResource(id) { if (!confirm('Delete this resource?')) return; resources = resources.filter(r => r.id !== id); selectedResources.delete(id); await saveToCloud(); closeModal(); updateUI(); updateSelectionUI(); toast('Deleted'); }
+
+    function editResource(id) { const r = resources.find(x => x.id === id); if (!r) return; editingResourceId = id; closeModal(); const phones = r.phones || []; const faxes = r.faxes || []; const emails = r.emails || []; document.getElementById('edit-form-container').innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">Name *</label><input type="text" id="e-name" value="${r.organizationName||''}" required class="w-full px-4 py-2 border rounded-lg"></div><div class="md:col-span-2"><label class="block text-sm font-semibold mb-2">Services *</label><div id="edit-service-checkboxes" class="p-4 border rounded-lg bg-gray-50 max-h-60 overflow-y-auto"></div></div><div><label class="block text-sm font-semibold mb-1">County *</label><select id="e-county" required class="w-full px-4 py-2 border rounded-lg">${counties.map(c => `<option value="${c}" ${r.county===c?'selected':''}>${c}</option>`).join('')}</select></div><div><label class="block text-sm font-semibold mb-2">Populations</label><div id="edit-population-checkboxes" class="p-3 border rounded-lg bg-gray-50 max-h-40 overflow-y-auto"></div></div><div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">Phone Numbers *</label><div id="edit-phone-container"></div><button type="button" onclick="addContactField('phone', 'edit-phone-container')" class="btn-add-contact mt-1">+ Add Phone</button></div><div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">Fax Numbers</label><div id="edit-fax-container"></div><button type="button" onclick="addContactField('fax', 'edit-fax-container')" class="btn-add-contact mt-1">+ Add Fax</button></div><div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">Email Addresses</label><div id="edit-email-container"></div><button type="button" onclick="addContactField('email', 'edit-email-container')" class="btn-add-contact mt-1">+ Add Email</button></div><div><label class="block text-sm font-semibold mb-1">Website</label><input type="url" id="e-website" value="${r.website||''}" class="w-full px-4 py-2 border rounded-lg"></div><div><label class="block text-sm font-semibold mb-1">City</label><input type="text" id="e-city" value="${r.city||''}" class="w-full px-4 py-2 border rounded-lg"></div><div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">Address</label><input type="text" id="e-address" value="${r.address||''}" class="w-full px-4 py-2 border rounded-lg"></div><div><label class="block text-sm font-semibold mb-1">State</label><input type="text" id="e-state" value="${r.state||'MD'}" class="w-full px-4 py-2 border rounded-lg"></div><div><label class="block text-sm font-semibold mb-1">ZIP</label><input type="text" id="e-zip" value="${r.zip||''}" class="w-full px-4 py-2 border rounded-lg"></div><div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">Notes</label><textarea id="e-notes" rows="2" class="w-full px-4 py-2 border rounded-lg">${r.notes||''}</textarea></div></div>`; populateServiceCheckboxes('edit-service-checkboxes', r.serviceTypes || []); populatePopulationCheckboxes('edit-population-checkboxes', r.populations || []); setTimeout(() => { phones.forEach(p => addContactField('phone', 'edit-phone-container', p)); if (phones.length === 0) addContactField('phone', 'edit-phone-container'); faxes.forEach(f => addContactField('fax', 'edit-fax-container', f)); if (faxes.length === 0) addContactField('fax', 'edit-fax-container'); emails.forEach(e => addContactField('email', 'edit-email-container', e)); if (emails.length === 0) addContactField('email', 'edit-email-container'); }, 10); document.getElementById('edit-modal').classList.remove('hidden'); }
+    function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); editingResourceId = null; }
+    async function saveEdit() { if (!editingResourceId) return; const idx = resources.findIndex(r => r.id === editingResourceId); if (idx === -1) return; const svcs = getSelectedServices('editServiceTypes'); if (!svcs.length) { toast('Select at least one service'); return; } const phones = getContactValues('phone', 'edit-phone-container'); if (!phones.length) { toast('Enter at least one phone'); return; } resources[idx] = { ...resources[idx], organizationName: document.getElementById('e-name').value, serviceTypes: svcs, county: document.getElementById('e-county').value, populations: getCheckedValues('editPopulations'), phones, faxes: getContactValues('fax', 'edit-fax-container'), emails: getContactValues('email', 'edit-email-container'), website: document.getElementById('e-website').value, address: document.getElementById('e-address').value, city: document.getElementById('e-city').value, state: document.getElementById('e-state').value, zip: document.getElementById('e-zip').value, notes: document.getElementById('e-notes').value }; resources.sort((a,b) => (a.organizationName||'').localeCompare(b.organizationName||'')); await saveToCloud(); closeEditModal(); updateUI(); toast('Saved!'); }
+
+    async function addResource(e) { e.preventDefault(); const svcs = getSelectedServices('serviceTypes'); if (!svcs.length) { toast('Select at least one service'); return; } const name = document.getElementById('f-name').value; if (!name.trim()) { toast('Enter organization name'); return; } const phones = getContactValues('phone', 'phone-container'); if (!phones.length) { toast('Enter at least one phone'); return; } const r = { id: Date.now().toString(), organizationName: name, serviceTypes: svcs, county: document.getElementById('f-county').value, populations: getCheckedValues('populations'), phones, faxes: getContactValues('fax', 'fax-container'), emails: getContactValues('email', 'email-container'), website: document.getElementById('f-website').value, address: document.getElementById('f-address').value, city: document.getElementById('f-city').value, state: document.getElementById('f-state').value, zip: document.getElementById('f-zip').value, servicesOffered: getCheckedValues('servicesOffered'), eligibility: getCheckedValues('eligibility'), restrictions: getCheckedValues('restrictions'), notes: document.getElementById('f-notes').value }; resources.push(r); resources.sort((a,b) => (a.organizationName||'').localeCompare(b.organizationName||'')); await saveToCloud(); clearForm(); updateUI(); toast('Resource added!'); }
+    function clearForm() { document.getElementById('add-form').reset(); document.getElementById('f-state').value = 'MD'; populateServiceCheckboxes(); populatePopulationCheckboxes(); populateServicesOfferedCheckboxes('services-offered-checkboxes', [], 'servicesOffered'); populateOptionsCheckboxes('eligibility-checkboxes', eligibilityOptions, [], 'eligibility'); populateOptionsCheckboxes('restrictions-checkboxes', restrictionsOptions, [], 'restrictions'); initContactFields(); document.getElementById('name-status').innerHTML = ''; document.getElementById('duplicate-warning').classList.add('hidden'); }
+
+    function importFile() { const fileInput = document.getElementById('import-file'); const file = fileInput.files[0]; const statusEl = document.getElementById('import-status'); if (!file) { toast('Select a file'); return; } statusEl.innerHTML = '<span class="text-primary">📂 Reading...</span>'; const fileName = file.name.toLowerCase(); if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) { const reader = new FileReader(); reader.onload = function(e) { try { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, { type: 'array' }); const firstSheet = workbook.Sheets[workbook.SheetNames[0]]; const jsonData = XLSX.utils.sheet_to_json(firstSheet); if (!jsonData.length) { statusEl.innerHTML = '<span class="text-red-600">❌ No data</span>'; return; } statusEl.innerHTML = `<span class="text-primary">✓ Found ${jsonData.length} rows</span>`; processImportData(jsonData); } catch (err) { statusEl.innerHTML = '<span class="text-red-600">❌ Error reading file</span>'; } }; reader.readAsArrayBuffer(file); return; } const reader = new FileReader(); reader.onload = function(e) { const content = e.target.result; try { if (fileName.endsWith('.json')) { const json = JSON.parse(content); const data = Array.isArray(json) ? json : (json.resources || []); statusEl.innerHTML = `<span class="text-primary">✓ Found ${data.length} resources</span>`; processImportData(data); } else { const delim = fileName.endsWith('.tsv') ? '\t' : ','; const lines = content.split(/\r?\n/).filter(l => l.trim()); if (lines.length < 2) { statusEl.innerHTML = '<span class="text-red-600">❌ Empty file</span>'; return; } const parseCSVLine = (line, delimiter) => { const result = []; let current = ''; let inQuotes = false; for (let i = 0; i < line.length; i++) { const char = line[i]; if (char === '"') inQuotes = !inQuotes; else if (char === delimiter && !inQuotes) { result.push(current.trim()); current = ''; } else current += char; } result.push(current.trim()); return result; }; const headers = parseCSVLine(lines[0], delim).map(h => h.toLowerCase().replace(/['"]/g, '').replace(/\s+/g, '').trim()); const data = []; for (let i = 1; i < lines.length; i++) { const vals = parseCSVLine(lines[i], delim); const obj = {}; headers.forEach((h, idx) => { obj[h] = (vals[idx] || '').replace(/^["']|["']$/g, ''); }); if (Object.values(obj).some(v => v.trim())) data.push(obj); } statusEl.innerHTML = `<span class="text-primary">✓ Found ${data.length} rows</span>`; processImportData(data); } } catch (err) { statusEl.innerHTML = '<span class="text-red-600">❌ Error parsing</span>'; } }; reader.readAsText(file); }
+    function processImportData(rawData) { const data = rawData.map((row, idx) => { const get = (...keys) => { for (const k of keys) { const val = row[k] || row[k.toLowerCase()] || row[k.replace(/\s/g, '')] || row[k.replace(/\s/g, '').toLowerCase()]; if (val) return String(val).trim(); } return ''; }; const name = get('organizationName', 'organization', 'name', 'Name', 'organizationname', 'org'); if (!name) return null; return { id: Date.now().toString() + idx + Math.random().toString(36).substr(2, 5), organizationName: name, phones: parseMultiValue(get('phones', 'phone', 'Phone')), faxes: parseMultiValue(get('faxes', 'fax', 'Fax')), emails: parseMultiValue(get('emails', 'email', 'Email')), website: get('website', 'Website', 'url'), address: get('address', 'Address'), city: get('city', 'City'), state: get('state', 'State') || 'MD', zip: get('zip', 'ZIP', 'zipcode'), county: matchCounty(get('county', 'County')), serviceTypes: parseServiceTypesFromImport(get('serviceTypes', 'servicetypes', 'services')), populations: parseMultiValue(get('populations', 'population')), servicesOffered: [], eligibility: [], restrictions: [], notes: get('notes', 'Notes') }; }).filter(r => r !== null); if (!data.length) { document.getElementById('import-status').innerHTML = '<span class="text-red-600">❌ No valid resources</span>'; return; } data.forEach(r => { r._isDup = !!findDuplicateResource(r.organizationName); }); pendingImport = data; showImportPreview(); }
+    function parseMultiValue(val) { if (!val) return []; if (Array.isArray(val)) return val.filter(Boolean); return val.split(/[;,|]/).map(v => v.trim()).filter(Boolean); }
+    function parseServiceTypesFromImport(val) { if (!val) return ['Food Assistance']; if (Array.isArray(val)) return val.length ? val : ['Food Assistance']; const parts = val.split(/[;,|]/).map(s => s.trim()).filter(Boolean); if (!parts.length) return ['Food Assistance']; const allServices = getServiceTypes(); const matched = []; parts.forEach(p => { const found = allServices.find(s => s.toLowerCase() === p.toLowerCase() || s.toLowerCase().includes(p.toLowerCase()) || p.toLowerCase().includes(s.toLowerCase())); if (found) matched.push(found); }); return matched.length ? [...new Set(matched)] : ['Food Assistance']; }
+    function matchCounty(val) { if (!val) return 'Allegany'; return counties.find(c => val.toLowerCase().includes(c.toLowerCase())) || 'Allegany'; }
+    function showImportPreview() { const dups = pendingImport.filter(r => r._isDup).length; document.getElementById('import-summary').innerHTML = `<span class="text-green-600 font-medium">✓ ${pendingImport.length - dups} new</span><span class="text-amber-600 font-medium">⚠️ ${dups} duplicates</span>`; document.getElementById('import-preview').innerHTML = `<div class="space-y-2 max-h-96 overflow-y-auto">${pendingImport.slice(0, 100).map(r => `<div class="p-3 rounded-lg ${r._isDup ? 'bg-amber-50 border-l-4 border-amber-400' : 'bg-green-50 border-l-4 border-green-400'}"><div class="flex justify-between items-start"><div><p class="font-semibold">${r.organizationName}</p><p class="text-sm text-slate">${r.city || 'No city'}, ${r.county}</p></div>${r._isDup ? '<span class="text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded">Duplicate?</span>' : '<span class="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">New</span>'}</div></div>`).join('')}</div>`; document.getElementById('import-modal').classList.remove('hidden'); }
+    function closeImportModal() { document.getElementById('import-modal').classList.add('hidden'); pendingImport = []; }
+    async function confirmImport() { const skipDups = document.getElementById('skip-duplicates').checked; const toImport = skipDups ? pendingImport.filter(r => !r._isDup) : pendingImport; toImport.forEach(r => { delete r._isDup; }); resources = [...resources, ...toImport]; resources.sort((a, b) => (a.organizationName || '').localeCompare(b.organizationName || '')); await saveToCloud(); closeImportModal(); updateUI(); toast(`Imported ${toImport.length} resources!`); document.getElementById('import-file').value = ''; document.getElementById('import-status').innerHTML = ''; }
+    function exportJSON() { download('wmrh-resources-backup.json', JSON.stringify(resources, null, 2), 'application/json'); toast('Backup saved!'); }
+    function exportCSV() { const h = ['organizationName', 'serviceTypes', 'phones', 'faxes', 'emails', 'website', 'address', 'city', 'state', 'zip', 'county', 'populations', 'notes']; const csv = [h.join(','), ...resources.map(r => h.map(k => { let v = r[k] || ''; if (Array.isArray(v)) v = v.join('; '); return `"${String(v).replace(/"/g, '""')}"`; }).join(','))].join('\n'); download('wmrh-resources.csv', csv, 'text/csv'); toast('CSV exported!'); }
+    function download(name, content, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], { type })); a.download = name; a.click(); }
+
+    function webSearch(q) { window.open(`https://www.google.com/search?q=${encodeURIComponent(q + ' Western Maryland')}`, '_blank'); }
+    function customWebSearch() { const county = document.getElementById('discover-county').value; const service = document.getElementById('discover-service').value; const keyword = document.getElementById('discover-keyword').value; const parts = [service, keyword, county, 'Maryland'].filter(Boolean); if (parts.length < 2) { toast('Add at least one filter'); return; } window.open(`https://www.google.com/search?q=${encodeURIComponent(parts.join(' '))}`, '_blank'); }
+    function toast(msg) { const t = document.createElement('div'); t.className = 'toast bg-primary text-white px-6 py-3 rounded-lg shadow-lg'; t.textContent = msg; document.getElementById('toast-container').appendChild(t); setTimeout(() => t.remove(), 3000); }
+
+    init();
+  </script>
+</body>
+</html>

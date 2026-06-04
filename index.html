@@ -6,7 +6,6 @@
   <title>Western Maryland Resource Hub</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap');
@@ -61,7 +60,7 @@
     }
     
     .header-content {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
@@ -113,7 +112,7 @@
     
     /* Main */
     main {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 2rem;
     }
@@ -322,6 +321,7 @@
       align-items: center;
       justify-content: center;
       padding: 1rem;
+      overflow-y: auto;
     }
     
     .modal.show {
@@ -332,7 +332,7 @@
       background: white;
       border-radius: 12px;
       padding: 2rem;
-      max-width: 600px;
+      max-width: 700px;
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
@@ -383,6 +383,35 @@
     
     @keyframes spin { to { transform: rotate(360deg); } }
     
+    .quick-search-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      justify-content: center;
+    }
+    
+    .quick-btn {
+      background: rgba(45, 90, 71, 0.1);
+      color: var(--forest);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    
+    .quick-btn:hover {
+      background: var(--forest);
+      color: white;
+    }
+    
+    @media print {
+      header, footer, nav, .modal, .search-input { display: none !important; }
+      .resource-card { page-break-inside: avoid; }
+    }
+    
     @media (max-width: 768px) {
       .hero h1 { font-size: 1.5rem; }
       main { padding: 1rem; }
@@ -404,7 +433,8 @@
         <button class="active" onclick="showPage('dashboard')">Dashboard</button>
         <button onclick="showPage('search')">Search</button>
         <button onclick="showPage('add')">Add Resource</button>
-        <button onclick="showPage('about')">About</button>
+        <button onclick="showPage('import')">Import/Export</button>
+        <button onclick="showPage('discover')">Discover Online</button>
       </nav>
       <div class="sync-status sync-online" id="sync-status">🟢 Cloud Synced</div>
     </div>
@@ -448,6 +478,7 @@
             <option value="">All Services</option>
           </select>
           <button onclick="resetFilters()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Reset</button>
+          <button onclick="window.print()" class="px-4 py-2 bg-forest text-white hover:bg-forest-dark rounded-lg transition-colors">🖨️ Print</button>
         </div>
       </div>
       <p id="results-count" style="color: var(--warm-gray); margin-bottom: 1rem;"></p>
@@ -540,18 +571,104 @@
       </div>
     </div>
 
-    <!-- About Page -->
-    <div id="page-about" class="page hidden">
-      <h2 style="color: var(--forest); font-size: 1.8rem; margin-bottom: 1.5rem;">About</h2>
-      <div class="bg-white rounded-lg p-6 card-shadow max-w-2xl">
-        <p style="margin-bottom: 1rem;">The Western Maryland Resource Hub connects residents of Allegany, Garrett, and Washington Counties with vital community services and support programs.</p>
-        <p style="margin-bottom: 1rem;">Our mission is to make it easy for individuals and families to find help when they need it most — from food assistance and housing to healthcare, employment, and crisis support.</p>
-        <h3 style="color: var(--forest); margin: 1.5rem 0 0.5rem;">Service Areas</h3>
-        <ul style="list-style: disc; padding-left: 1.5rem; color: var(--warm-gray);">
-          <li>Allegany County</li>
-          <li>Garrett County</li>
-          <li>Washington County</li>
-        </ul>
+    <!-- Import/Export Page -->
+    <div id="page-import" class="page hidden">
+      <h2 style="color: var(--forest); font-size: 1.8rem; margin-bottom: 1.5rem;">Import / Export Resources</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg p-6 card-shadow">
+          <h3 style="color: var(--forest); margin-bottom: 1rem;">📤 Import Resources</h3>
+          <p style="margin-bottom: 1rem; font-size: 0.9rem;">Upload a file with resource data (CSV, JSON, TSV).</p>
+          <input type="file" id="import-file" accept=".csv,.json,.txt,.tsv" class="w-full mb-4 text-sm">
+          <button onclick="importFile()" class="w-full py-3 bg-forest text-white rounded-lg hover:bg-forest-dark transition-colors font-semibold">Import File</button>
+        </div>
+        
+        <div class="bg-white rounded-lg p-6 card-shadow">
+          <h3 style="color: var(--forest); margin-bottom: 1rem;">📥 Export Resources</h3>
+          <p style="margin-bottom: 1rem; font-size: 0.9rem;">Download all <span id="export-count" style="font-weight: bold; color: var(--forest);">0</span> resources.</p>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <button onclick="exportJSON()" class="w-full py-2 bg-forest text-white rounded-lg hover:bg-forest-dark transition-colors font-semibold">⭐ Export as JSON</button>
+            <button onclick="exportCSV()" class="w-full py-2 border-2 border-forest text-forest rounded-lg hover:bg-forest hover:text-white transition-colors font-semibold">📊 Export as CSV</button>
+            <button onclick="exportTSV()" class="w-full py-2 border-2 border-warm-border text-forest rounded-lg hover:bg-gray-100 transition-colors font-semibold">📋 Export as TSV</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- URL Import -->
+      <div class="mt-6 bg-white rounded-lg p-6 card-shadow">
+        <h3 style="color: var(--forest); margin-bottom: 1rem;">🔗 Import from Website</h3>
+        <p style="color: var(--warm-gray); font-size: 0.9rem; margin-bottom: 1rem;">Paste a URL to extract resources. Works best with .gov directory pages.</p>
+        <div class="flex gap-3 mb-3">
+          <input type="url" id="url-input" placeholder="https://example.gov/resources" class="flex-1 px-4 py-3 border-2 border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-forest/30">
+          <button onclick="smartImport()" id="url-import-btn" class="px-6 py-3 bg-forest text-white rounded-lg hover:bg-forest-dark">Import</button>
+        </div>
+        <div id="url-import-status" style="font-size: 0.9rem; color: var(--warm-gray);"></div>
+      </div>
+    </div>
+
+    <!-- Discover Online Page -->
+    <div id="page-discover" class="page hidden">
+      <h2 style="color: var(--forest); font-size: 1.8rem; margin-bottom: 1.5rem;">Discover Resources Online</h2>
+      
+      <div class="bg-white rounded-lg p-6 card-shadow mb-6">
+        <h3 style="color: var(--forest); margin-bottom: 1rem;">🔍 Quick Search</h3>
+        <p style="color: var(--warm-gray); font-size: 0.9rem; margin-bottom: 1rem;">Click any button to search Google for that resource type.</p>
+        <div class="quick-search-buttons">
+          <button onclick="webSearch('food pantry Western Maryland')" class="quick-btn">🍎 Food Pantries</button>
+          <button onclick="webSearch('SNAP benefits Maryland')" class="quick-btn">🏷️ SNAP</button>
+          <button onclick="webSearch('housing assistance Maryland')" class="quick-btn">🏠 Housing</button>
+          <button onclick="webSearch('recovery housing Maryland')" class="quick-btn">🏡 Recovery Housing</button>
+          <button onclick="webSearch('mental health counseling Maryland')" class="quick-btn">🧠 Mental Health</button>
+          <button onclick="webSearch('detox treatment Maryland')" class="quick-btn">🏥 Detox</button>
+          <button onclick="webSearch('job training Maryland')" class="quick-btn">💼 Employment</button>
+          <button onclick="webSearch('legal aid Maryland')" class="quick-btn">⚖️ Legal Aid</button>
+          <button onclick="webSearch('senior services Maryland')" class="quick-btn">👴 Seniors</button>
+          <button onclick="webSearch('veteran services Maryland')" class="quick-btn">🎖️ Veterans</button>
+          <button onclick="webSearch('substance abuse treatment Maryland')" class="quick-btn">💊 Substance Abuse</button>
+          <button onclick="webSearch('transportation assistance Maryland')" class="quick-btn">🚗 Transportation</button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg p-6 card-shadow mb-6">
+        <h3 style="color: var(--forest); margin-bottom: 1rem;">🎯 Custom Search</h3>
+        <div class="flex flex-wrap gap-3">
+          <input type="text" id="discover-keyword" placeholder="Keywords..." class="flex-1 min-w-[150px] px-4 py-2 border-2 border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-forest/30">
+          <button onclick="customWebSearch()" class="px-6 py-2 bg-forest text-white rounded-lg hover:bg-forest-dark">Search</button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg p-6 card-shadow">
+        <h3 style="color: var(--forest); margin-bottom: 1rem;">📚 Resource Directories</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <a href="https://www.211.org/" target="_blank" class="flex items-center gap-3 p-4 border-2 border-warm-border rounded-lg hover:bg-forest/5 transition-colors">
+            <span style="font-size: 1.5rem;">📞</span>
+            <div>
+              <p style="font-weight: 600; color: var(--forest);">211 Maryland</p>
+              <p style="font-size: 0.85rem; color: var(--warm-gray);">Statewide hotline</p>
+            </div>
+          </a>
+          <a href="https://www.benefits.gov/" target="_blank" class="flex items-center gap-3 p-4 border-2 border-warm-border rounded-lg hover:bg-forest/5 transition-colors">
+            <span style="font-size: 1.5rem;">🏛️</span>
+            <div>
+              <p style="font-weight: 600; color: var(--forest);">Benefits.gov</p>
+              <p style="font-size: 0.85rem; color: var(--warm-gray);">Federal benefits</p>
+            </div>
+          </a>
+          <a href="https://www.findhelp.org/" target="_blank" class="flex items-center gap-3 p-4 border-2 border-warm-border rounded-lg hover:bg-forest/5 transition-colors">
+            <span style="font-size: 1.5rem;">🔍</span>
+            <div>
+              <p style="font-weight: 600; color: var(--forest);">FindHelp.org</p>
+              <p style="font-size: 0.85rem; color: var(--warm-gray);">Local services</p>
+            </div>
+          </a>
+          <a href="https://www.samhsa.gov/find-help/national-helpline" target="_blank" class="flex items-center gap-3 p-4 border-2 border-warm-border rounded-lg hover:bg-forest/5 transition-colors">
+            <span style="font-size: 1.5rem;">🆘</span>
+            <div>
+              <p style="font-weight: 600; color: var(--forest);">SAMHSA</p>
+              <p style="font-size: 0.85rem; color: var(--warm-gray);">Substance abuse help</p>
+            </div>
+          </a>
+        </div>
       </div>
     </div>
   </main>
@@ -596,6 +713,7 @@
     let firebaseReady = false;
     let resources = [];
     let initialLoadComplete = false;
+    let pendingImport = [];
 
     // Initialize Firebase
     try {
@@ -712,11 +830,7 @@
         { id: '5', organizationName: 'Maryland Job Service', serviceTypes: ['Employment', 'Job Training', 'GED Classes'], county: 'All Counties', city: 'Multiple', phone: '(301) 777-2100', address: 'Multiple locations throughout Western MD', state: 'MD', population: 'General Population', servicesOffered: 'Job placement, resume help, training programs', eligibility: 'Unemployed and underemployed', restrictions: 'Must be 18+' },
         { id: '6', organizationName: 'Allegany Transportation Services', serviceTypes: ['Transportation'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-0811', address: '', state: 'MD', population: 'Seniors', servicesOffered: 'Demand-response transit service', eligibility: 'All residents', restrictions: 'Mon-Fri 6am-6pm' },
         { id: '7', organizationName: 'Crisis Hotline - Western Maryland', serviceTypes: ['Crisis Support'], county: 'All Counties', city: 'Multiple', phone: '988 (Suicide & Crisis Lifeline)', address: '', state: 'MD', population: 'General Population', servicesOffered: '24/7 crisis support for mental health emergencies', eligibility: 'Anyone in crisis', restrictions: 'Available 24 hours, 7 days a week' },
-        { id: '8', organizationName: 'Garrett County Senior Center', serviceTypes: ['Senior Services', 'Meals'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9011', address: '80 N 4th St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Seniors', servicesOffered: 'Meals, activities, transportation', eligibility: 'Seniors 60+', restrictions: 'Age requirement' },
-        { id: '9', organizationName: 'Legal Aid Bureau', serviceTypes: ['Legal Aid'], county: 'All Counties', city: 'Multiple', phone: '(240) 313-5555', address: '100 Law Plaza, Hagerstown, MD 21740', state: 'MD', population: 'General Population', servicesOffered: 'Free legal services', eligibility: 'Low-income residents', restrictions: 'Income limits apply' },
-        { id: '10', organizationName: 'Early Intervention Services', serviceTypes: ['Youth Services'], county: 'All Counties', city: 'Multiple', phone: '(240) 313-5555', address: '', state: 'MD', population: 'Children & Youth', servicesOffered: 'Early intervention for children with delays', eligibility: 'Children under 3', restrictions: 'Referral required' },
-        { id: '11', organizationName: 'Meritus Medical Center', serviceTypes: ['Healthcare', 'Emergency Care'], county: 'Washington', city: 'Hagerstown', phone: '(301) 790-8000', address: '11116 Medical Campus Rd, Hagerstown, MD 21742', state: 'MD', population: 'General Population', servicesOffered: 'Full-service hospital with emergency care', eligibility: 'All residents', restrictions: 'Emergency care 24/7' },
-        { id: '12', organizationName: 'Family Services Center', serviceTypes: ['Family Services', 'Counseling'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-4567', address: '100 Family Ave, Cumberland, MD 21502', state: 'MD', population: 'Families', servicesOffered: 'Family counseling and support services', eligibility: 'Families with children', restrictions: 'Sliding fee scale' }
+        { id: '8', organizationName: 'Garrett County Senior Center', serviceTypes: ['Senior Services', 'Meals'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9011', address: '80 N 4th St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Seniors', servicesOffered: 'Meals, activities, transportation', eligibility: 'Seniors 60+', restrictions: 'Age requirement' }
       ];
     }
 
@@ -754,12 +868,14 @@
     }
 
     function showPage(page) {
-      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-      document.getElementById('page-' + page).classList.remove('hidden');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
       document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
       event.target.classList.add('active');
+      
       if (page === 'dashboard') updateDashboard();
       if (page === 'search') doSearch();
+      if (page === 'import') document.getElementById('export-count').textContent = resources.length;
     }
 
     function updateDashboard() {
@@ -853,6 +969,190 @@
       document.getElementById('add-form').reset();
       document.getElementById('f-state').value = 'MD';
       populateServiceCheckboxes();
+    }
+
+    // Import/Export Functions
+    function importFile() {
+      const file = document.getElementById('import-file').files[0];
+      if (!file) { toast('Select file'); return; }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        let data = [];
+        try {
+          if (file.name.endsWith('.json')) {
+            data = JSON.parse(e.target.result);
+          } else {
+            const delim = file.name.endsWith('.tsv') ? '\t' : ',';
+            const lines = e.target.result.split('\n').filter(l => l.trim());
+            if (lines.length < 2) { toast('Empty file'); return; }
+            const headers = lines[0].split(delim).map(h => h.trim().toLowerCase());
+            for (let i = 1; i < lines.length; i++) {
+              const vals = lines[i].split(delim).map(v => v.trim());
+              const obj = {}; 
+              headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; });
+              if (obj.organizationname || obj.name) {
+                data.push({
+                  id: Date.now().toString() + i,
+                  organizationName: obj.organizationname || obj.name,
+                  serviceTypes: obj.servicetypes ? obj.servicetypes.split(';').map(s => s.trim()) : ['Food Assistance'],
+                  county: obj.county || 'Allegany',
+                  city: obj.city || '',
+                  phone: obj.phone || '',
+                  email: obj.email || '',
+                  website: obj.website || '',
+                  address: obj.address || '',
+                  state: obj.state || 'MD',
+                  zip: obj.zip || '',
+                  population: obj.population || 'General Population',
+                  servicesOffered: obj.servicesoffered || '',
+                  eligibility: obj.eligibility || '',
+                  restrictions: obj.restrictions || ''
+                });
+              }
+            }
+          }
+          if (!data.length) { toast('No resources found'); return; }
+          pendingImport = data;
+          resources = [...resources, ...data];
+          resources.sort((a,b) => a.organizationName.localeCompare(b.organizationName));
+          saveToCloud();
+          updateDashboard();
+          toast(`Imported ${data.length} resources!`);
+          document.getElementById('import-file').value = '';
+        } catch (err) { toast('Error reading file'); console.error(err); }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportJSON() {
+      const data = JSON.stringify(resources, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'resources-backup.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Downloaded JSON backup!');
+    }
+
+    function exportCSV() {
+      const headers = ['organizationName', 'serviceTypes', 'county', 'city', 'phone', 'email', 'website', 'address', 'state', 'zip', 'servicesOffered', 'eligibility', 'population', 'restrictions'];
+      const csv = [
+        headers.join(','),
+        ...resources.map(r => headers.map(h => {
+          let v = r[h] || '';
+          if (h === 'serviceTypes') v = (r.serviceTypes || []).join('; ');
+          return `"${String(v).replace(/"/g, '""')}"`;
+        }).join(','))
+      ].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'resources.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Downloaded CSV file!');
+    }
+
+    function exportTSV() {
+      const headers = ['organizationName', 'serviceTypes', 'county', 'city', 'phone', 'email', 'website', 'address', 'state', 'zip', 'servicesOffered', 'eligibility', 'population', 'restrictions'];
+      const tsv = [
+        headers.join('\t'),
+        ...resources.map(r => headers.map(h => {
+          let v = r[h] || '';
+          if (h === 'serviceTypes') v = (r.serviceTypes || []).join('; ');
+          return String(v).replace(/\t/g, ' ');
+        }).join('\t'))
+      ].join('\n');
+      const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'resources.tsv';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Downloaded TSV file!');
+    }
+
+    function smartImport() {
+      const url = document.getElementById('url-input').value.trim();
+      if (!url) { toast('Enter URL'); return; }
+      const status = document.getElementById('url-import-status');
+      const btn = document.getElementById('url-import-btn');
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      status.innerHTML = '⏳ Fetching...';
+      
+      fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url))
+        .then(resp => resp.text())
+        .then(html => {
+          status.innerHTML = '🔍 Extracting...';
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const found = [];
+          const phoneRe = /(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/g;
+          const emailRe = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/g;
+          
+          doc.querySelectorAll('p, li, div').forEach(el => {
+            const txt = el.textContent.trim();
+            if (txt.length > 20 && txt.length < 500) {
+              const phones = txt.match(phoneRe), emails = txt.match(emailRe);
+              if (phones || emails) {
+                const heading = el.querySelector('h1,h2,h3,strong,b,a');
+                let name = heading ? heading.textContent.trim() : txt.split('\n')[0].substring(0, 80);
+                if (name && name.length >= 3) {
+                  found.push({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    organizationName: name.substring(0, 100),
+                    phone: phones ? phones[0] : '',
+                    email: emails ? emails[0] : '',
+                    serviceTypes: ['Food Assistance'],
+                    county: 'Allegany',
+                    population: 'General Population',
+                    servicesOffered: txt.substring(0, 200),
+                    eligibility: '',
+                    restrictions: '',
+                    address: '',
+                    city: '',
+                    state: 'MD',
+                    zip: '',
+                    website: url
+                  });
+                }
+              }
+            }
+          });
+          
+          if (found.length === 0) {
+            status.innerHTML = '❌ No resources found';
+          } else {
+            resources = [...resources, ...found];
+            resources.sort((a, b) => a.organizationName.localeCompare(b.organizationName));
+            saveToCloud();
+            updateDashboard();
+            status.innerHTML = `✅ Found and imported ${found.length}!`;
+            toast(`Imported ${found.length} resources from website!`);
+          }
+        })
+        .catch(err => { 
+          status.innerHTML = '❌ Could not fetch URL'; 
+          console.error(err);
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.textContent = 'Import';
+        });
+    }
+
+    function webSearch(q) {
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, '_blank');
+    }
+
+    function customWebSearch() {
+      const keyword = document.getElementById('discover-keyword').value;
+      if (!keyword) { toast('Enter keywords'); return; }
+      webSearch(keyword + ' Western Maryland');
     }
 
     function toast(msg) {

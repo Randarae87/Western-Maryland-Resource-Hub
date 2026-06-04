@@ -499,7 +499,7 @@
             
             <div class="form-group full-width">
               <label>Service Types * (select all that apply)</label>
-              <div id="service-checkboxes" style="padding: 1rem; border: 2px solid var(--warm-border); border-radius: 8px; background: rgba(45, 90, 71, 0.02); max-height: 300px; overflow-y: auto;"></div>
+              <div id="service-checkboxes" style="padding: 1rem; border: 2px solid var(--warm-border); border-radius: 8px; background: rgba(45, 90, 71, 0.02); max-height: 400px; overflow-y: auto;"></div>
             </div>
             
             <div class="form-group">
@@ -626,6 +626,7 @@
           <button onclick="webSearch('veteran services Maryland')" class="quick-btn">🎖️ Veterans</button>
           <button onclick="webSearch('substance abuse treatment Maryland')" class="quick-btn">💊 Substance Abuse</button>
           <button onclick="webSearch('transportation assistance Maryland')" class="quick-btn">🚗 Transportation</button>
+          <button onclick="webSearch('sex offender resources Maryland')" class="quick-btn">⚠️ Sex Offender Resources</button>
         </div>
       </div>
 
@@ -728,24 +729,30 @@
     const counties = ['Allegany', 'Carroll', 'Frederick', 'Garrett', 'Washington'];
     
     const serviceCategories = {
-      '🍎 Food & Nutrition': ['Food Assistance', 'Food Pantry', 'SNAP', 'Food Stamps', 'Nutrition', 'Emergency Food'],
-      '🏠 Housing': ['Housing', 'Recovery Housing', 'HUD', 'Eviction Prevention', 'Accessible Housing', 'Emergency Shelter'],
-      '🏥 Healthcare': ['Healthcare', 'Primary Care', 'Dental Care', 'Vision Care', 'Medication Management', 'Medical', 'Medicare', 'Medicaid', 'Insurance'],
-      '🧠 Mental Health': ['Mental Health', 'Psychiatric', 'Therapy', 'Counseling', 'Crisis', 'Peer Support'],
-      '💊 Substance Abuse': ['Substance Abuse', 'Recovery', 'Detox', 'Inpatient Treatment', 'Outpatient Treatment', 'Harm Reduction', '12 Step', 'Smart Recovery', 'MAT'],
-      '💼 Employment': ['Employment', 'Jobs', 'Job Training', 'GED', 'GED Classes', 'Education', 'Programs', 'Grants'],
-      '⚖️ Legal': ['Legal Aid', 'Public Defender', 'Record', 'Expungement', 'ID', 'Advocacy'],
-      '🚗 Transportation': ['Transportation', 'Bus Passes', 'Medical Transport'],
-      '👨‍👩‍👧 Family': ['Family Services', 'Family', 'Childcare', 'Parenting Classes', 'Domestic Violence'],
-      '👴 Seniors': ['Senior Services', 'Case Management'],
-      '🎖️ Veterans': ['Veteran Services'],
-      '♿ Disability': ['Disability Services', 'SSI', 'SSDI'],
-      '💰 Financial': ['Financial Assistance', 'Utility Assistance', 'Emergency Assistance'],
-      '👕 Basic Needs': ['Clothing & Household', 'Emergency'],
+      '🏠 Housing & Shelter': ['Emergency Shelter', 'Transitional Housing', 'Permanent Supportive Housing', 'Rental Assistance', 'Reentry Housing', 'Domestic Violence Shelters', 'Youth & Family Shelters', 'Senior Housing', 'LGBTQ+ Housing', 'Sober Living', 'Recovery Housing', 'Homeless Services'],
+      '🍎 Food & Nutrition': ['Food Assistance', 'Food Pantry', 'SNAP', 'Food Stamps', 'Nutrition', 'Emergency Food', 'Soup Kitchens', 'Meal Delivery', 'Groceries Distribution'],
+      '🏥 Healthcare': ['Healthcare', 'Primary Care', 'Dental Care', 'Vision Care', 'Medication Management', 'Medical', 'Medicare', 'Medicaid', 'Insurance', 'HIV/AIDS Services', 'Sexual Health', 'Prescription Assistance', 'Health Education'],
+      '🧠 Mental Health & Counseling': ['Mental Health', 'Psychiatric', 'Therapy', 'Counseling', 'Crisis Counseling', 'Group Therapy', 'Psychiatric Medication', 'Support Groups', 'Trauma-Informed Care', 'Crisis Hotline'],
+      '💊 Substance Abuse & Recovery': ['Substance Abuse', 'Recovery', 'Detox', 'Inpatient Treatment', 'Outpatient Treatment', 'Harm Reduction', '12 Step', 'Smart Recovery', 'MAT', 'Medication-Assisted Treatment', 'Recovery Coaching', 'Sober Living'],
+      '💼 Employment & Job Support': ['Employment', 'Jobs', 'Job Training', 'GED', 'GED Classes', 'Education', 'Programs', 'Grants', 'Resume Help', 'Job Placement', 'Career Counseling', 'Apprenticeships', 'Supported Employment'],
+      '⚖️ Legal Assistance': ['Legal Aid', 'Public Defender', 'Record Expungement', 'Family Law', 'Tenant Rights', 'Eviction Prevention', 'Immigration Legal', 'Court Advocacy', 'Victims Rights'],
+      '⚠️ Sex Offender Resources': ['Sex Offender Registry Help', 'Reentry Programs', 'Transition Services', 'Specialized Counseling', 'Treatment Groups', 'Navigation Services', 'Parole Support', 'Probation Support', 'Community Notification Support', 'Registry Compliance'],
+      '🚗 Transportation': ['Transportation', 'Bus Passes', 'Medical Transport', 'Ride Assistance', 'Accessible Transportation'],
+      '👨‍👩‍👧 Family Services': ['Family Services', 'Family Support', 'Childcare', 'Parenting Classes', 'Domestic Violence', 'Family Reunification', 'Child Support'],
+      '👴 Seniors': ['Senior Services', 'Case Management', 'Meals on Wheels', 'Senior Centers', 'Memory Care', 'Long-term Care'],
+      '🎖️ Veterans': ['Veteran Services', 'Veterans Benefits', 'Military Family Support', 'PTSD Services', 'Veteran Housing'],
+      '♿ Disability Services': ['Disability Services', 'SSI', 'SSDI', 'Accessibility Services', 'Assistive Technology', 'Inclusive Programs'],
+      '💰 Financial Assistance': ['Financial Assistance', 'Utility Assistance', 'Emergency Assistance', 'Financial Literacy', 'Tax Prep Help', 'Child Support Services', 'Rent Assistance', 'Bill Payment Help'],
+      '👕 Basic Needs': ['Clothing', 'Household Items', 'Emergency Supplies', 'Toiletries', 'Baby Supplies'],
+      '🎓 Education & Literacy': ['Education Programs', 'Adult Education', 'Literacy Programs', 'English as Second Language', 'Vocational Training', 'College Preparation'],
+      '🏥 Specialty Healthcare': ['HIV/AIDS', 'Infectious Disease', 'Sexual Health Clinics', 'Chronic Disease Management', 'Women\'s Health', 'Men\'s Health'],
+      '👶 Child & Youth Services': ['Youth Services', 'After-school Programs', 'Youth Mentoring', 'Summer Camps', 'Tutoring', 'College Readiness'],
+      '🏘️ Community Services': ['Community Centers', 'Neighborhood Programs', 'Community Engagement', 'Civic Programs', 'Social Events'],
+      '📱 Information & Referral': ['Information Services', 'Resource Navigation', 'Case Management', 'Care Coordination', 'Help Line']
     };
 
     const serviceTypes = [...new Set(Object.values(serviceCategories).flat())].sort();
-    const populations = ['General Population', 'Families', 'Children & Youth', 'Seniors', 'Veterans', 'Homeless', 'Disabled', 'Immigrants', 'Registered Individuals'];
+    const populations = ['General Population', 'Families', 'Children & Youth', 'Seniors', 'Veterans', 'Homeless', 'Disabled', 'Immigrants', 'Registered Individuals', 'Pregnant Women', 'Low-Income', 'Uninsured', 'Justice-Involved', 'LGBTQ+', 'Domestic Violence Survivors', 'Refugees', 'Survivors of Trafficking'];
 
     // Init
     async function init() {
@@ -823,14 +830,18 @@
 
     function getSampleResources() {
       return [
-        { id: '1', organizationName: 'Western Maryland Food Bank', serviceTypes: ['Food Assistance', 'SNAP'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-6191', address: '120 N Centre St, Cumberland, MD 21502', state: 'MD', zip: '21502', population: 'General Population', servicesOffered: 'Emergency food assistance and distribution', eligibility: 'Low-income families', restrictions: 'Must provide proof of residency' },
-        { id: '2', organizationName: 'Allegany County Health Department', serviceTypes: ['Healthcare', 'Primary Care'], county: 'Allegany', city: 'Cumberland', phone: '(301) 759-5000', address: '12501 Willowbrook Rd, Cumberland, MD 21502', state: 'MD', zip: '21502', population: 'General Population', servicesOffered: 'Immunizations, family planning, WIC services', eligibility: 'All residents', restrictions: 'Sliding fee scale' },
-        { id: '3', organizationName: 'Garrett County Community Action', serviceTypes: ['Housing', 'Utility Assistance'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9431', address: '104 E Center St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Families', servicesOffered: 'Housing assistance, weatherization, utility help', eligibility: 'Low-income residents', restrictions: 'Annual income limits apply' },
-        { id: '4', organizationName: 'Washington County Mental Health Authority', serviceTypes: ['Mental Health', 'Crisis', 'Substance Abuse'], county: 'Washington', city: 'Hagerstown', phone: '(240) 313-3310', address: '339 E Antietam St, Hagerstown, MD 21740', state: 'MD', zip: '21740', population: 'General Population', servicesOffered: 'Mental health counseling, crisis intervention, addiction treatment', eligibility: 'All residents', restrictions: '24/7 crisis line available' },
-        { id: '5', organizationName: 'Maryland Job Service', serviceTypes: ['Employment', 'Job Training', 'GED Classes'], county: 'All Counties', city: 'Multiple', phone: '(301) 777-2100', address: 'Multiple locations throughout Western MD', state: 'MD', population: 'General Population', servicesOffered: 'Job placement, resume help, training programs', eligibility: 'Unemployed and underemployed', restrictions: 'Must be 18+' },
-        { id: '6', organizationName: 'Allegany Transportation Services', serviceTypes: ['Transportation'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-0811', address: '', state: 'MD', population: 'Seniors', servicesOffered: 'Demand-response transit service', eligibility: 'All residents', restrictions: 'Mon-Fri 6am-6pm' },
-        { id: '7', organizationName: 'Crisis Hotline - Western Maryland', serviceTypes: ['Crisis Support'], county: 'All Counties', city: 'Multiple', phone: '988 (Suicide & Crisis Lifeline)', address: '', state: 'MD', population: 'General Population', servicesOffered: '24/7 crisis support for mental health emergencies', eligibility: 'Anyone in crisis', restrictions: 'Available 24 hours, 7 days a week' },
-        { id: '8', organizationName: 'Garrett County Senior Center', serviceTypes: ['Senior Services', 'Meals'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9011', address: '80 N 4th St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Seniors', servicesOffered: 'Meals, activities, transportation', eligibility: 'Seniors 60+', restrictions: 'Age requirement' }
+        { id: '1', organizationName: 'Western Maryland Food Bank', serviceTypes: ['Food Assistance', 'SNAP', 'Emergency Food'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-6191', address: '120 N Centre St, Cumberland, MD 21502', state: 'MD', zip: '21502', population: 'General Population', servicesOffered: 'Emergency food assistance and distribution', eligibility: 'Low-income families', restrictions: 'Must provide proof of residency' },
+        { id: '2', organizationName: 'Allegany County Health Department', serviceTypes: ['Healthcare', 'Primary Care', 'Dental Care'], county: 'Allegany', city: 'Cumberland', phone: '(301) 759-5000', address: '12501 Willowbrook Rd, Cumberland, MD 21502', state: 'MD', zip: '21502', population: 'General Population', servicesOffered: 'Immunizations, family planning, WIC services', eligibility: 'All residents', restrictions: 'Sliding fee scale' },
+        { id: '3', organizationName: 'Garrett County Community Action', serviceTypes: ['Housing', 'Utility Assistance', 'Rental Assistance'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9431', address: '104 E Center St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Families', servicesOffered: 'Housing assistance, weatherization, utility help', eligibility: 'Low-income residents', restrictions: 'Annual income limits apply' },
+        { id: '4', organizationName: 'Washington County Mental Health Authority', serviceTypes: ['Mental Health', 'Crisis Counseling', 'Substance Abuse', 'Psychiatric'], county: 'Washington', city: 'Hagerstown', phone: '(240) 313-3310', address: '339 E Antietam St, Hagerstown, MD 21740', state: 'MD', zip: '21740', population: 'General Population', servicesOffered: 'Mental health counseling, crisis intervention, addiction treatment', eligibility: 'All residents', restrictions: '24/7 crisis line available' },
+        { id: '5', organizationName: 'Maryland Job Service', serviceTypes: ['Employment', 'Job Training', 'GED Classes', 'Career Counseling'], county: 'All Counties', city: 'Multiple', phone: '(301) 777-2100', address: 'Multiple locations throughout Western MD', state: 'MD', population: 'General Population', servicesOffered: 'Job placement, resume help, training programs', eligibility: 'Unemployed and underemployed', restrictions: 'Must be 18+' },
+        { id: '6', organizationName: 'Allegany Transportation Services', serviceTypes: ['Transportation', 'Medical Transport'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-0811', address: '', state: 'MD', population: 'Seniors', servicesOffered: 'Demand-response transit service', eligibility: 'All residents', restrictions: 'Mon-Fri 6am-6pm' },
+        { id: '7', organizationName: 'Crisis Hotline - Western Maryland', serviceTypes: ['Crisis Counseling', 'Mental Health', 'Support Groups'], county: 'All Counties', city: 'Multiple', phone: '988 (Suicide & Crisis Lifeline)', address: '', state: 'MD', population: 'General Population', servicesOffered: '24/7 crisis support for mental health emergencies', eligibility: 'Anyone in crisis', restrictions: 'Available 24 hours, 7 days a week' },
+        { id: '8', organizationName: 'Garrett County Senior Center', serviceTypes: ['Senior Services', 'Meals on Wheels', 'Case Management'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9011', address: '80 N 4th St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Seniors', servicesOffered: 'Meals, activities, transportation', eligibility: 'Seniors 60+', restrictions: 'Age requirement' },
+        { id: '9', organizationName: 'Veteran Services Office', serviceTypes: ['Veteran Services', 'Veterans Benefits', 'PTSD Services'], county: 'Washington', city: 'Hagerstown', phone: '(301) 733-8300', address: '', state: 'MD', population: 'Veterans', servicesOffered: 'Benefits counseling and assistance', eligibility: 'Military veterans', restrictions: 'Proof of military service required' },
+        { id: '10', organizationName: 'Sex Offender Reentry Program', serviceTypes: ['Sex Offender Registry Help', 'Reentry Programs', 'Specialized Counseling', 'Registry Compliance'], county: 'All Counties', city: 'Multiple', phone: '(240) 313-2800', address: '', state: 'MD', population: 'Registered Individuals', servicesOffered: 'Transition assistance, compliance support, counseling', eligibility: 'Registered individuals', restrictions: 'Confidential' },
+        { id: '11', organizationName: 'Family Crisis Center', serviceTypes: ['Domestic Violence', 'Emergency Shelter', 'Family Services', 'Counseling'], county: 'Washington', city: 'Hagerstown', phone: '(301) 797-0433', address: '', state: 'MD', population: 'Domestic Violence Survivors', servicesOffered: 'Safe shelter, counseling, legal advocacy', eligibility: 'Victims of domestic violence', restrictions: 'Confidential location' },
+        { id: '12', organizationName: 'Legal Aid Bureau', serviceTypes: ['Legal Aid', 'Record Expungement', 'Family Law', 'Eviction Prevention'], county: 'All Counties', city: 'Multiple', phone: '(301) 533-4900', address: '', state: 'MD', population: 'Low-Income', servicesOffered: 'Free legal services for eligible clients', eligibility: 'Low-income residents', restrictions: 'Income limits apply' }
       ];
     }
 

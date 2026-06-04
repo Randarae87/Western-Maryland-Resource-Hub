@@ -5,40 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Western Maryland Resource Hub</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap');
     
     :root {
-      --primary: #2d5a27;
-      --primary-light: #4a7c43;
-      --accent: #8b4513;
-      --bg: #faf9f6;
-      --card: #ffffff;
-      --text: #1a1a1a;
-      --text-muted: #5a5a5a;
-      --border: #e5e5e5;
-      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+      --forest: #2D5A47;
+      --forest-dark: #1E3D30;
+      --forest-light: #3D7A5F;
+      --sage: #87A98F;
+      --sage-light: #A7C9AF;
+      --ivory: #FFFFF5;
+      --warm-gray: #6B6B60;
+      --warm-border: #E5E5DC;
     }
     
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+      font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif; 
+      background: var(--ivory); 
+      color: var(--warm-gray);
     }
+    
+    h1, h2, h3, h4 { font-family: 'Libre Baskerville', Georgia, serif; }
+    
+    .card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .card-shadow:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    
+    .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    
+    .modal-enter { animation: modalIn 0.2s ease; }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.25rem; }
+    .service-checkbox { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; border-radius: 0.375rem; cursor: pointer; transition: background 0.2s; font-size: 0.875rem; }
+    .service-checkbox:hover { background: rgba(45, 90, 71, 0.08); }
+    .service-checkbox input:checked + span { color: var(--forest); font-weight: 600; }
+    
+    .category-header { font-weight: 600; color: var(--forest); padding: 0.5rem; background: rgba(45, 90, 71, 0.1); border-radius: 0.375rem; margin-top: 0.75rem; margin-bottom: 0.5rem; font-size: 0.875rem; }
+    .category-header:first-child { margin-top: 0; }
     
     /* Header */
     header {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-      color: white;
+      background: white;
+      border-bottom: 1px solid var(--warm-border);
       padding: 1rem 2rem;
       position: sticky;
       top: 0;
-      z-index: 100;
-      box-shadow: var(--shadow);
+      z-index: 50;
     }
     
     .header-content {
@@ -55,19 +74,9 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       font-weight: 700;
-    }
-    
-    .logo-icon {
-      width: 48px;
-      height: 48px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
+      color: var(--forest);
     }
     
     nav {
@@ -77,9 +86,9 @@
     }
     
     nav button {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: white;
+      background: transparent;
+      border: none;
+      color: var(--warm-gray);
       padding: 0.5rem 1rem;
       border-radius: 8px;
       cursor: pointer;
@@ -88,74 +97,57 @@
     }
     
     nav button:hover {
-      background: rgba(255,255,255,0.25);
+      background: rgba(45, 90, 71, 0.08);
+      color: var(--forest);
     }
     
     nav button.active {
-      background: rgba(255,255,255,0.35);
-      border-color: rgba(255,255,255,0.5);
-    }
-    
-    /* Hero Section */
-    .hero {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--accent) 100%);
+      background: var(--forest);
       color: white;
-      padding: 4rem 2rem;
-      text-align: center;
     }
     
-    .hero.hidden {
-      display: none;
-    }
+    /* Sync Status */
+    .sync-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px; }
+    .sync-online { background: #d4edda; color: #155724; }
+    .sync-offline { background: #f8d7da; color: #721c24; }
     
-    .hero h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-    
-    .hero p {
-      font-size: 1.2rem;
-      opacity: 0.9;
-      max-width: 600px;
-      margin: 0 auto 2rem;
-    }
-    
-    /* Search */
-    .search-container {
-      max-width: 600px;
-      margin: 0 auto;
-      position: relative;
-    }
-    
-    .search-input {
-      width: 100%;
-      padding: 1rem 1.5rem;
-      font-size: 1.1rem;
-      border: none;
-      border-radius: 50px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
-    
-    .search-input:focus {
-      outline: 3px solid var(--accent);
-    }
-    
-    /* Main Content */
+    /* Main */
     main {
       max-width: 1200px;
       margin: 0 auto;
       padding: 2rem;
     }
     
-    .page-content {
-      display: none;
+    .page { display: none; }
+    .page.active { display: block; }
+    
+    .hero {
+      background: linear-gradient(135deg, var(--forest) 0%, var(--forest-light) 100%);
+      color: white;
+      padding: 3rem 2rem;
+      text-align: center;
+      border-radius: 12px;
+      margin-bottom: 2rem;
     }
     
-    .page-content.active {
-      display: block;
+    .hero.hidden { display: none; }
+    
+    .hero h1 { font-size: 2.2rem; margin-bottom: 1rem; }
+    .hero p { font-size: 1.1rem; opacity: 0.9; margin-bottom: 1.5rem; }
+    
+    .search-input {
+      width: 100%;
+      max-width: 600px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border: 2px solid var(--warm-border);
+      border-radius: 50px;
+      background: white;
     }
     
-    /* Category Filter */
+    .search-input:focus { outline: none; border-color: var(--forest); box-shadow: 0 0 0 3px rgba(45, 90, 71, 0.1); }
+    
+    /* Filters */
     .filters {
       display: flex;
       gap: 0.5rem;
@@ -164,13 +156,12 @@
       justify-content: center;
     }
     
-    .filters.hidden {
-      display: none !important;
-    }
+    .filters.hidden { display: none !important; }
     
     .filter-btn {
-      background: var(--card);
-      border: 2px solid var(--border);
+      background: white;
+      border: 2px solid var(--warm-border);
+      color: var(--warm-gray);
       padding: 0.5rem 1rem;
       border-radius: 25px;
       cursor: pointer;
@@ -179,17 +170,17 @@
     }
     
     .filter-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary);
+      border-color: var(--forest);
+      color: var(--forest);
     }
     
     .filter-btn.active {
-      background: var(--primary);
-      border-color: var(--primary);
+      background: var(--forest);
+      border-color: var(--forest);
       color: white;
     }
     
-    /* Resources Grid */
+    /* Grid */
     .resources-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -197,130 +188,38 @@
     }
     
     .resource-card {
-      background: var(--card);
-      border-radius: 16px;
+      background: white;
+      border-radius: 12px;
       padding: 1.5rem;
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border);
-      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--warm-border);
+      card-shadow;
+      transition: all 0.2s;
+      cursor: pointer;
     }
     
     .resource-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-    }
-    
-    .resource-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     }
     
     .resource-card h3 {
-      font-size: 1.2rem;
-      color: var(--primary);
-      margin-bottom: 0.25rem;
-      flex: 1;
-    }
-    
-    .category-badge {
-      background: var(--primary);
-      color: white;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      white-space: nowrap;
-      margin-left: 0.5rem;
+      color: var(--forest);
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
     }
     
     .resource-card p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      margin-bottom: 1rem;
-    }
-    
-    .resource-details {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+      color: var(--warm-gray);
       font-size: 0.9rem;
+      margin-bottom: 0.75rem;
     }
     
-    .resource-details span {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text-muted);
-    }
-    
-    .resource-actions {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--border);
-    }
-    
-    .resource-actions a, .resource-actions button {
-      flex: 1;
-      padding: 0.5rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      text-decoration: none;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-    }
-    
-    .btn-primary:hover {
-      background: var(--primary-light);
-    }
-    
-    .btn-secondary {
-      background: transparent;
-      color: var(--primary);
-      border: 1px solid var(--primary);
-    }
-    
-    .btn-secondary:hover {
-      background: var(--primary);
-      color: white;
-    }
-    
-    /* Admin Panel */
-    .admin-panel {
-      display: none;
-      background: var(--card);
-      border-radius: 16px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      box-shadow: var(--shadow);
-    }
-    
-    .admin-panel.show {
-      display: block;
-    }
-    
-    .admin-panel h2 {
-      color: var(--primary);
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
+    /* Forms */
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 1rem;
+      margin-bottom: 1.5rem;
     }
     
     .form-group {
@@ -336,20 +235,26 @@
     .form-group label {
       font-weight: 600;
       font-size: 0.9rem;
-      color: var(--text);
+      color: var(--forest);
     }
     
-    .form-group input, .form-group select, .form-group textarea {
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
       padding: 0.75rem;
-      border: 2px solid var(--border);
+      border: 2px solid var(--warm-border);
       border-radius: 8px;
       font-size: 1rem;
+      font-family: inherit;
       transition: border-color 0.2s;
     }
     
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
       outline: none;
-      border-color: var(--primary);
+      border-color: var(--forest);
+      box-shadow: 0 0 0 3px rgba(45, 90, 71, 0.1);
     }
     
     .form-group textarea {
@@ -357,96 +262,86 @@
       resize: vertical;
     }
     
+    .admin-panel {
+      display: none;
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 2px solid var(--warm-border);
+      card-shadow;
+    }
+    
+    .admin-panel.show {
+      display: block;
+    }
+    
     .form-actions {
       display: flex;
       gap: 1rem;
-      margin-top: 1.5rem;
       justify-content: flex-end;
+      margin-top: 1.5rem;
     }
     
     .form-actions button {
       padding: 0.75rem 1.5rem;
       border-radius: 8px;
-      font-size: 1rem;
+      border: none;
       cursor: pointer;
+      font-weight: 600;
       transition: all 0.2s;
     }
     
-    /* Loading & Empty States */
-    .loading {
-      text-align: center;
-      padding: 4rem;
-      color: var(--text-muted);
+    .btn-primary {
+      background: var(--forest);
+      color: white;
     }
     
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid var(--border);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 1rem;
+    .btn-primary:hover {
+      background: var(--forest-dark);
     }
     
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--forest);
+      border: 2px solid var(--forest);
     }
     
-    .empty-state {
-      text-align: center;
-      padding: 4rem;
-      color: var(--text-muted);
+    .btn-secondary:hover {
+      background: var(--forest);
+      color: white;
     }
     
-    .empty-state h3 {
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
-      color: var(--text);
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
     }
     
-    /* About Page */
-    .about-content {
-      max-width: 800px;
-      margin: 0 auto;
+    .modal.show {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 12px;
       padding: 2rem;
-    }
-    
-    .about-content h2 {
-      color: var(--primary);
-      margin-bottom: 1rem;
-      font-size: 2rem;
-    }
-    
-    .about-content h3 {
-      color: var(--primary);
-      margin: 2rem 0 1rem;
-    }
-    
-    .about-content p {
-      margin-bottom: 1rem;
-      color: var(--text);
-    }
-    
-    .about-content ul {
-      list-style: disc;
-      padding-left: 1.5rem;
-      color: var(--text-muted);
-    }
-    
-    .about-content a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 600;
-    }
-    
-    .about-content a:hover {
-      text-decoration: underline;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      modal-enter;
     }
     
     /* Footer */
     footer {
-      background: var(--primary);
+      background: var(--forest);
       color: white;
       padding: 2rem;
       text-align: center;
@@ -458,646 +353,518 @@
       text-decoration: underline;
     }
     
-    /* Toast Notifications */
+    /* Toast */
     .toast {
       position: fixed;
       bottom: 2rem;
       right: 2rem;
-      background: var(--primary);
+      background: var(--forest);
       color: white;
       padding: 1rem 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-      transform: translateX(150%);
-      transition: transform 0.3s;
-      z-index: 1000;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 2000;
     }
     
-    .toast.show {
-      transform: translateX(0);
+    .loading {
+      text-align: center;
+      padding: 3rem;
     }
     
-    .toast.error {
-      background: #c53030;
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--warm-border);
+      border-top-color: var(--forest);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
     }
     
-    /* Mobile Responsive */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
     @media (max-width: 768px) {
-      .header-content {
-        flex-direction: column;
-        text-align: center;
-      }
-      
-      .hero h1 {
-        font-size: 1.8rem;
-      }
-      
-      .hero p {
-        font-size: 1rem;
-      }
-      
-      main {
-        padding: 1rem;
-      }
-      
-      .resources-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .form-actions {
-        flex-direction: column;
-      }
+      .hero h1 { font-size: 1.5rem; }
+      main { padding: 1rem; }
+      .resources-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-actions { flex-direction: column; }
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
+  <!-- Header -->
   <header>
     <div class="header-content">
       <div class="logo">
-        <div class="logo-icon">🤝</div>
-        <span>WMD Resource Hub</span>
+        <span>🤝</span>
+        <span>Western Maryland Resource Hub</span>
       </div>
       <nav>
-        <button class="active" onclick="showPage('home')">🏠 Home</button>
-        <button onclick="showPage('resources')">📚 Resources</button>
-        <button onclick="showPage('about')">ℹ️ About</button>
-        <button onclick="toggleAdmin()">➕ Add Resource</button>
+        <button class="active" onclick="showPage('dashboard')">Dashboard</button>
+        <button onclick="showPage('search')">Search</button>
+        <button onclick="showPage('add')">Add Resource</button>
+        <button onclick="showPage('about')">About</button>
       </nav>
+      <div class="sync-status sync-online" id="sync-status">🟢 Cloud Synced</div>
     </div>
   </header>
 
-  <div id="hero-section" class="hero">
-    <h1>🤝❤️ Western Maryland Resource Hub</h1>
-    <p>Connecting Allegany, Garrett, and Washington County residents with vital community services and support.</p>
-    <div class="search-container">
-      <input type="text" class="search-input" id="search-input" placeholder="Search for resources (food, housing, healthcare...)" oninput="filterResources()">
-    </div>
-  </div>
-
-  <main>
-    <!-- Admin Panel -->
-    <div class="admin-panel" id="admin-panel">
-      <h2>➕ Add New Resource</h2>
-      <form id="resource-form" onsubmit="saveResource(event)">
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="name">Organization Name *</label>
-            <input type="text" id="name" required>
-          </div>
-          <div class="form-group">
-            <label for="category">Category *</label>
-            <select id="category" required>
-              <option value="">Select category...</option>
-              <option value="Food Assistance">Food Assistance</option>
-              <option value="Housing">Housing</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Mental Health">Mental Health</option>
-              <option value="Employment">Employment</option>
-              <option value="Transportation">Transportation</option>
-              <option value="Utilities">Utilities</option>
-              <option value="Legal Aid">Legal Aid</option>
-              <option value="Education">Education</option>
-              <option value="Veterans">Veterans</option>
-              <option value="Youth Services">Youth Services</option>
-              <option value="Senior Services">Senior Services</option>
-              <option value="Disability Services">Disability Services</option>
-              <option value="Crisis Support">Crisis Support</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="county">County *</label>
-            <select id="county" required>
-              <option value="">Select county...</option>
-              <option value="Allegany">Allegany County</option>
-              <option value="Garrett">Garrett County</option>
-              <option value="Washington">Washington County</option>
-              <option value="All Counties">All Counties</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="phone">Phone</label>
-            <input type="tel" id="phone" placeholder="(301) 555-1234">
-          </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" placeholder="contact@organization.org">
-          </div>
-          <div class="form-group">
-            <label for="website">Website</label>
-            <input type="url" id="website" placeholder="https://www.example.org">
-          </div>
-          <div class="form-group full-width">
-            <label for="address">Address</label>
-            <input type="text" id="address" placeholder="123 Main St, Cumberland, MD 21502">
-          </div>
-          <div class="form-group full-width">
-            <label for="description">Description *</label>
-            <textarea id="description" required placeholder="Describe the services offered..."></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label for="hours">Hours of Operation</label>
-            <input type="text" id="hours" placeholder="Mon-Fri 9am-5pm">
-          </div>
-          <div class="form-group full-width">
-            <label for="eligibility">Eligibility Requirements</label>
-            <textarea id="eligibility" placeholder="Any requirements to access services..."></textarea>
-          </div>
+  <!-- Main Content -->
+  <main class="flex-grow">
+    <!-- Dashboard Page -->
+    <div id="page-dashboard" class="page active">
+      <h2 style="color: var(--forest); font-size: 1.8rem; margin-bottom: 1.5rem;">Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-lg p-6 card-shadow text-center">
+          <div style="font-size: 2rem; font-weight: bold; color: var(--forest);" id="stat-total">0</div>
+          <p style="color: var(--warm-gray); margin-top: 0.5rem;">Total Resources</p>
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn-secondary" onclick="toggleAdmin()">Cancel</button>
-          <button type="submit" class="btn-primary">💾 Save Resource</button>
+        <div class="bg-white rounded-lg p-6 card-shadow text-center">
+          <div style="font-size: 2rem; font-weight: bold; color: var(--forest);" id="stat-services">0</div>
+          <p style="color: var(--warm-gray); margin-top: 0.5rem;">Service Types</p>
         </div>
-      </form>
-    </div>
-
-    <!-- Category Filters -->
-    <div class="filters" id="filters">
-      <button class="filter-btn active" data-category="all" onclick="setCategory('all')">All Resources</button>
-      <button class="filter-btn" data-category="Food Assistance" onclick="setCategory('Food Assistance')">🍎 Food</button>
-      <button class="filter-btn" data-category="Housing" onclick="setCategory('Housing')">🏠 Housing</button>
-      <button class="filter-btn" data-category="Healthcare" onclick="setCategory('Healthcare')">🏥 Healthcare</button>
-      <button class="filter-btn" data-category="Mental Health" onclick="setCategory('Mental Health')">🧠 Mental Health</button>
-      <button class="filter-btn" data-category="Employment" onclick="setCategory('Employment')">💼 Employment</button>
-      <button class="filter-btn" data-category="Transportation" onclick="setCategory('Transportation')">🚗 Transportation</button>
-      <button class="filter-btn" data-category="Crisis Support" onclick="setCategory('Crisis Support')">🆘 Crisis</button>
-    </div>
-
-    <!-- Resources Grid -->
-    <div id="page-home" class="page-content active">
-      <div id="resources-container">
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Loading resources...</p>
+        <div class="bg-white rounded-lg p-6 card-shadow text-center">
+          <div style="font-size: 2rem; font-weight: bold; color: var(--forest);" id="stat-counties">0</div>
+          <p style="color: var(--warm-gray); margin-top: 0.5rem;">Counties</p>
+        </div>
+        <div class="bg-white rounded-lg p-6 card-shadow text-center">
+          <div style="font-size: 2rem; font-weight: bold; color: var(--forest);" id="stat-populations">0</div>
+          <p style="color: var(--warm-gray); margin-top: 0.5rem;">Populations</p>
         </div>
       </div>
     </div>
 
-    <!-- Resources Page -->
-    <div id="page-resources" class="page-content">
-      <div id="resources-container-2">
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Loading resources...</p>
+    <!-- Search Page -->
+    <div id="page-search" class="page hidden">
+      <h2 style="color: var(--forest); font-size: 1.8rem; margin-bottom: 1.5rem;">Search Resources</h2>
+      <div class="bg-white rounded-lg p-6 card-shadow mb-6">
+        <div class="flex flex-wrap gap-4 mb-4">
+          <input type="text" id="search-input" placeholder="Search by name, service, keyword..." class="flex-1 min-w-[200px] px-4 py-2 border-2 border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest" oninput="doSearch()">
+          <select id="filter-county" class="px-4 py-2 border-2 border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-forest/30" onchange="doSearch()">
+            <option value="">All Counties</option>
+          </select>
+          <select id="filter-service" class="px-4 py-2 border-2 border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-forest/30" onchange="doSearch()">
+            <option value="">All Services</option>
+          </select>
+          <button onclick="resetFilters()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Reset</button>
         </div>
+      </div>
+      <p id="results-count" style="color: var(--warm-gray); margin-bottom: 1rem;"></p>
+      <div id="results" class="resources-grid"></div>
+    </div>
+
+    <!-- Add Resource Page -->
+    <div id="page-add" class="page hidden">
+      <h2 style="color: var(--forest); font-size: 1.8rem; margin-bottom: 1.5rem;">Add New Resource</h2>
+      
+      <div class="admin-panel show">
+        <form id="add-form" style="margin: 0;">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Organization Name *</label>
+              <input type="text" id="f-name" required>
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Service Types * (select all that apply)</label>
+              <div id="service-checkboxes" style="padding: 1rem; border: 2px solid var(--warm-border); border-radius: 8px; background: rgba(45, 90, 71, 0.02); max-height: 300px; overflow-y: auto;"></div>
+            </div>
+            
+            <div class="form-group">
+              <label>County *</label>
+              <select id="f-county" required></select>
+            </div>
+            
+            <div class="form-group">
+              <label>Population Served</label>
+              <select id="f-population"></select>
+            </div>
+            
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="tel" id="f-phone">
+            </div>
+            
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="f-email">
+            </div>
+            
+            <div class="form-group">
+              <label>Website</label>
+              <input type="url" id="f-website" placeholder="https://">
+            </div>
+            
+            <div class="form-group">
+              <label>City</label>
+              <input type="text" id="f-city">
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Address</label>
+              <input type="text" id="f-address">
+            </div>
+            
+            <div class="form-group">
+              <label>State</label>
+              <input type="text" id="f-state" value="MD">
+            </div>
+            
+            <div class="form-group">
+              <label>ZIP Code</label>
+              <input type="text" id="f-zip">
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Services Offered</label>
+              <textarea id="f-services"></textarea>
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Eligibility Criteria</label>
+              <textarea id="f-eligibility"></textarea>
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Restrictions</label>
+              <textarea id="f-restrictions"></textarea>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="clearForm()">Clear</button>
+            <button type="submit" class="btn-primary">Add Resource</button>
+          </div>
+        </form>
       </div>
     </div>
 
     <!-- About Page -->
-    <div id="page-about" class="page-content">
-      <div class="about-content">
-        <h2>About Western Maryland Resource Hub</h2>
-        <p>
-          The Western Maryland Resource Hub connects residents of Allegany, Garrett, and Washington Counties 
-          with vital community services and support programs.
-        </p>
-        <p>
-          Our mission is to make it easy for individuals and families to find help when they need it most — 
-          from food assistance and housing to healthcare, employment, and crisis support.
-        </p>
-        <h3>How to Use This Hub</h3>
-        <ul>
-          <li>Use the search bar to find resources by keyword</li>
-          <li>Filter by category using the buttons above</li>
-          <li>Click "Call" to contact organizations directly</li>
-          <li>Visit websites or send emails for more information</li>
-          <li>Submit new resources using the "Add Resource" button</li>
-        </ul>
-        <h3>Our Service Areas</h3>
-        <ul>
+    <div id="page-about" class="page hidden">
+      <h2 style="color: var(--forest); font-size: 1.8rem; margin-bottom: 1.5rem;">About</h2>
+      <div class="bg-white rounded-lg p-6 card-shadow max-w-2xl">
+        <p style="margin-bottom: 1rem;">The Western Maryland Resource Hub connects residents of Allegany, Garrett, and Washington Counties with vital community services and support programs.</p>
+        <p style="margin-bottom: 1rem;">Our mission is to make it easy for individuals and families to find help when they need it most — from food assistance and housing to healthcare, employment, and crisis support.</p>
+        <h3 style="color: var(--forest); margin: 1.5rem 0 0.5rem;">Service Areas</h3>
+        <ul style="list-style: disc; padding-left: 1.5rem; color: var(--warm-gray);">
           <li>Allegany County</li>
           <li>Garrett County</li>
           <li>Washington County</li>
         </ul>
-        <h3>Contact Us</h3>
-        <p>
-          Have a resource to add or a correction to submit?<br>
-          Email: <a href="mailto:contact@wmdresourcehub.org">contact@wmdresourcehub.org</a>
-        </p>
       </div>
     </div>
   </main>
 
+  <!-- Modal for Resource Details -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+        <h3 id="modal-title" style="color: var(--forest); font-size: 1.3rem; flex: 1;"></h3>
+        <button onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--warm-gray);">✕</button>
+      </div>
+      <div id="modal-body" style="color: var(--warm-gray); line-height: 1.6;"></div>
+      <div id="modal-footer" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;"></div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" style="position: fixed; bottom: 2rem; right: 2rem; z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+
+  <!-- Footer -->
   <footer>
     <p>Western Maryland Resource Hub — Serving Allegany, Garrett & Washington Counties</p>
     <p style="margin-top: 0.5rem; opacity: 0.8;">
       <a href="mailto:contact@wmdresourcehub.org">Contact Us</a> | 
-      <a href="#" onclick="toggleAdmin(); return false;">Submit a Resource</a>
+      <a href="#" onclick="showPage('add'); return false;">Submit a Resource</a>
     </p>
   </footer>
 
-  <!-- Toast Notification -->
-  <div class="toast" id="toast"></div>
-
   <script>
-    // Firebase Configuration
+    // Firebase Config
     const firebaseConfig = {
-      apiKey: "AIzaSyD_7F6V9JHsc5DWYb2hyYzwxBwqE7hfDkE",
-      authDomain: "western-maryland-resource-hub.firebaseapp.com",
-      projectId: "western-maryland-resource-hub",
-      storageBucket: "western-maryland-resource-hub.appspot.com",
-      messagingSenderId: "918038912498",
-      appId: "1:918038912498:web:5c1a6d7e8f2a3b4c5d6e7f"
+      apiKey: "AIzaSyBwcQKo-NfVnfZotXBL_afvuUIQxGLNs4k",
+      authDomain: "wm-resource-hub.firebaseapp.com",
+      databaseURL: "https://wm-resource-hub-default-rtdb.firebaseio.com",
+      projectId: "wm-resource-hub",
+      storageBucket: "wm-resource-hub.firebasestorage.app",
+      messagingSenderId: "919632329844",
+      appId: "1:919632329844:web:885dec95a565e7f0efe521"
     };
 
+    let db = null;
+    let firebaseReady = false;
+    let resources = [];
+    let initialLoadComplete = false;
+
     // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+      console.log('Firebase initialized');
+    } catch(e) {
+      console.error('Firebase init failed:', e);
+    }
 
-    // State
-    let allResources = [];
-    let currentCategory = 'all';
-    let searchQuery = '';
-    let currentPage = 'home';
+    // Data Constants
+    const counties = ['Allegany', 'Carroll', 'Frederick', 'Garrett', 'Washington'];
+    
+    const serviceCategories = {
+      '🍎 Food & Nutrition': ['Food Assistance', 'Food Pantry', 'SNAP', 'Food Stamps', 'Nutrition', 'Emergency Food'],
+      '🏠 Housing': ['Housing', 'Recovery Housing', 'HUD', 'Eviction Prevention', 'Accessible Housing', 'Emergency Shelter'],
+      '🏥 Healthcare': ['Healthcare', 'Primary Care', 'Dental Care', 'Vision Care', 'Medication Management', 'Medical', 'Medicare', 'Medicaid', 'Insurance'],
+      '🧠 Mental Health': ['Mental Health', 'Psychiatric', 'Therapy', 'Counseling', 'Crisis', 'Peer Support'],
+      '💊 Substance Abuse': ['Substance Abuse', 'Recovery', 'Detox', 'Inpatient Treatment', 'Outpatient Treatment', 'Harm Reduction', '12 Step', 'Smart Recovery', 'MAT'],
+      '💼 Employment': ['Employment', 'Jobs', 'Job Training', 'GED', 'GED Classes', 'Education', 'Programs', 'Grants'],
+      '⚖️ Legal': ['Legal Aid', 'Public Defender', 'Record', 'Expungement', 'ID', 'Advocacy'],
+      '🚗 Transportation': ['Transportation', 'Bus Passes', 'Medical Transport'],
+      '👨‍👩‍👧 Family': ['Family Services', 'Family', 'Childcare', 'Parenting Classes', 'Domestic Violence'],
+      '👴 Seniors': ['Senior Services', 'Case Management'],
+      '🎖️ Veterans': ['Veteran Services'],
+      '♿ Disability': ['Disability Services', 'SSI', 'SSDI'],
+      '💰 Financial': ['Financial Assistance', 'Utility Assistance', 'Emergency Assistance'],
+      '👕 Basic Needs': ['Clothing & Household', 'Emergency'],
+    };
 
-    // Load resources on page load
-    document.addEventListener('DOMContentLoaded', loadResources);
+    const serviceTypes = [...new Set(Object.values(serviceCategories).flat())].sort();
+    const populations = ['General Population', 'Families', 'Children & Youth', 'Seniors', 'Veterans', 'Homeless', 'Disabled', 'Immigrants', 'Registered Individuals'];
 
-    // Load resources from Firestore
-    async function loadResources() {
+    // Init
+    async function init() {
+      if (db) {
+        try {
+          const snapshot = await db.ref('resources').once('value');
+          const data = snapshot.val();
+          
+          if (data && Object.keys(data).length > 0) {
+            resources = Object.values(data).map(r => ({
+              ...r,
+              serviceTypes: Array.isArray(r.serviceTypes) ? r.serviceTypes : (r.serviceType ? [r.serviceType] : ['Food Assistance'])
+            }));
+            console.log('Loaded', resources.length, 'resources from Firebase');
+          } else {
+            resources = getSampleResources();
+          }
+          
+          firebaseReady = true;
+          updateSyncStatus('online');
+          setupRealtimeSync();
+          
+        } catch (err) {
+          console.error('Firebase load error:', err);
+          resources = getSampleResources();
+        }
+      } else {
+        resources = getSampleResources();
+      }
+
+      initialLoadComplete = true;
+      populateDropdowns();
+      populateServiceCheckboxes();
+      document.getElementById('add-form').onsubmit = addResource;
+      updateDashboard();
+    }
+
+    function setupRealtimeSync() {
+      if (!db) return;
+      db.ref('resources').on('value', (snapshot) => {
+        if (!initialLoadComplete) return;
+        const data = snapshot.val();
+        if (data) {
+          resources = Object.values(data).map(r => ({
+            ...r,
+            serviceTypes: Array.isArray(r.serviceTypes) ? r.serviceTypes : ['Food Assistance']
+          }));
+          updateDashboard();
+          doSearch();
+          console.log('Realtime sync:', resources.length, 'resources');
+        }
+      });
+    }
+
+    function updateSyncStatus(status) {
+      const el = document.getElementById('sync-status');
+      el.className = 'sync-status ' + (status === 'online' ? 'sync-online' : 'sync-offline');
+      el.innerHTML = status === 'online' ? '🟢 Cloud Synced' : '🔴 Offline';
+    }
+
+    async function saveToCloud() {
+      if (!db || !firebaseReady) return false;
       try {
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('timeout')), 10000)
-        );
-        
-        const fetchPromise = db.collection('resources').orderBy('name').get();
-        const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
-        
-        allResources = [];
-        snapshot.forEach(doc => {
-          allResources.push({ id: doc.id, ...doc.data() });
-        });
-        
-        if (allResources.length === 0) {
-          allResources = getSampleResources();
-        }
-        
-        renderResources();
-        
-      } catch (error) {
-        console.error('Error loading resources:', error);
-        allResources = getSampleResources();
-        renderResources();
-        
-        if (error.message === 'timeout') {
-          showToast('Loading sample data - Firebase connection timed out', 'error');
-        }
+        const obj = {};
+        resources.forEach(r => { obj[r.id] = r; });
+        await db.ref('resources').set(obj);
+        updateSyncStatus('online');
+        return true;
+      } catch (err) {
+        console.error('Save error:', err);
+        updateSyncStatus('offline');
+        return false;
       }
     }
 
-    // 120+ Sample Resources for offline/demo use
     function getSampleResources() {
       return [
-        // Allegany County - Food Assistance
-        { id: '1', name: 'Western Maryland Food Bank', category: 'Food Assistance', county: 'Allegany', description: 'Provides emergency food assistance to families in need. Distribution every Tuesday and Thursday.', phone: '(301) 722-6191', address: '120 N Centre St, Cumberland, MD 21502', hours: 'Tue & Thu 10am-2pm', website: 'https://wmfoodbank.org' },
-        { id: '2', name: 'Allegany County Food Pantry', category: 'Food Assistance', county: 'Allegany', description: 'Community food pantry offering free groceries to eligible residents.', phone: '(301) 777-5959', address: '15 S Mechanic St, Cumberland, MD 21502', hours: 'Mon-Fri 9am-4pm', website: '' },
-        { id: '3', name: 'Faith-Based Food Ministry', category: 'Food Assistance', county: 'Allegany', description: 'Weekly food distribution through local churches.', phone: '(301) 722-3344', address: 'Multiple locations', hours: 'Wed 2pm-5pm', website: '' },
-        { id: '4', name: 'Emergency Food Assistance Program', category: 'Food Assistance', county: 'Allegany', description: 'State-funded emergency food assistance for crisis situations.', phone: '(301) 722-1234', address: 'Various locations', hours: 'Call for availability', website: '' },
-        { id: '5', name: 'Community Meal Program', category: 'Food Assistance', county: 'Allegany', description: 'Free hot meals served daily to anyone in need.', phone: '(301) 724-4567', address: '223 Washington St, Cumberland, MD 21502', hours: 'Daily 12pm-1pm', website: '' },
-        
-        // Allegany County - Healthcare
-        { id: '6', name: 'Allegany County Health Department', category: 'Healthcare', county: 'Allegany', description: 'Offers immunizations, family planning, WIC, and various health services on a sliding fee scale.', phone: '(301) 759-5000', address: '12501 Willowbrook Rd, Cumberland, MD 21502', hours: 'Mon-Fri 8am-5pm', website: 'https://health.maryland.gov' },
-        { id: '7', name: 'Meritus Medical Center', category: 'Healthcare', county: 'Allegany', description: 'Full-service hospital with emergency care, inpatient and outpatient services.', phone: '(301) 790-8000', address: '11116 Medical Campus Rd, Hagerstown, MD 21742', hours: '24/7', website: 'https://meritushealth.com' },
-        { id: '8', name: 'Primary Care Clinic - Cumberland', category: 'Healthcare', county: 'Allegany', description: 'General practice medical clinic accepting new patients.', phone: '(301) 722-8888', address: '100 Main St, Cumberland, MD 21502', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '9', name: 'Dental Health Center', category: 'Healthcare', county: 'Allegany', description: 'Affordable dental services including cleanings, fillings, and extractions.', phone: '(301) 724-1111', address: '45 Baltimore Ave, Cumberland, MD 21502', hours: 'Mon-Fri 9am-5pm', website: '' },
-        { id: '10', name: 'Community Health Services', category: 'Healthcare', county: 'Allegany', description: 'Preventive and primary healthcare services for uninsured/underinsured.', phone: '(301) 759-5000', address: 'Multiple locations', hours: 'Call for hours', website: '' },
-        
-        // Allegany County - Housing
-        { id: '11', name: 'Allegany Housing Authority', category: 'Housing', county: 'Allegany', description: 'Public housing assistance and rental support programs.', phone: '(301) 777-6400', address: '13 Washington St, Cumberland, MD 21502', hours: 'Mon-Fri 8:30am-4:30pm', website: '' },
-        { id: '12', name: 'Emergency Housing Program', category: 'Housing', county: 'Allegany', description: 'Temporary shelter and housing assistance for homeless individuals and families.', phone: '(301) 777-5959', address: '123 Shelter Rd, Cumberland, MD 21502', hours: '24/7', website: '' },
-        { id: '13', name: 'Weatherization Assistance', category: 'Housing', county: 'Allegany', description: 'Home improvement and weatherization for low-income families.', phone: '(301) 722-2000', address: '456 Industrial Blvd, Cumberland, MD 21502', hours: 'Mon-Fri 9am-4pm', website: '' },
-        { id: '14', name: 'Rental Assistance Fund', category: 'Housing', county: 'Allegany', description: 'Financial assistance for rent and utilities for qualified residents.', phone: '(301) 777-1234', address: 'Downtown Services Center', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '15', name: 'Home Repair Program', category: 'Housing', county: 'Allegany', description: 'Assistance with home repairs for elderly and disabled residents.', phone: '(301) 722-6000', address: 'Various locations', hours: 'Call for appointment', website: '' },
-        
-        // Allegany County - Mental Health & Crisis
-        { id: '16', name: 'Allegany Mental Health Center', category: 'Mental Health', county: 'Allegany', description: 'Outpatient mental health and substance abuse counseling services.', phone: '(301) 722-5000', address: '30 S Commerce St, Cumberland, MD 21502', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '17', name: 'Crisis Hotline - Western Maryland', category: 'Crisis Support', county: 'All Counties', description: '24/7 crisis support for mental health emergencies, suicide prevention, and immediate assistance.', phone: '988', hours: '24/7', website: '' },
-        { id: '18', name: 'Substance Abuse Recovery Center', category: 'Mental Health', county: 'Allegany', description: 'Inpatient and outpatient substance abuse treatment programs.', phone: '(301) 777-4000', address: '789 Recovery Lane, Cumberland, MD 21502', hours: 'Call for hours', website: '' },
-        { id: '19', name: 'Peer Support Groups', category: 'Mental Health', county: 'Allegany', description: 'Free peer support groups for various mental health conditions.', phone: '(301) 722-3000', address: 'Multiple community locations', hours: 'Call for schedule', website: '' },
-        { id: '20', name: 'Behavioral Health Clinic', category: 'Mental Health', county: 'Allegany', description: 'Individual and family counseling services.', phone: '(301) 724-2000', address: '55 Main St, Cumberland, MD 21502', hours: 'Mon-Fri 9am-5pm, Sat 10am-2pm', website: '' },
-        
-        // Allegany County - Employment
-        { id: '21', name: 'Maryland Job Service', category: 'Employment', county: 'All Counties', description: 'Job search assistance, resume help, interview preparation, and job training programs.', phone: '(301) 777-2100', address: 'Multiple locations throughout Western MD', hours: 'Mon-Fri 8am-4:30pm', website: '' },
-        { id: '22', name: 'Workforce Development Center', category: 'Employment', county: 'Allegany', description: 'Career counseling and job placement services.', phone: '(301) 777-2100', address: '100 N Commerce St, Cumberland, MD 21502', hours: 'Mon-Fri 8:30am-5pm', website: '' },
-        { id: '23', name: 'GED Classes', category: 'Education', county: 'Allegany', description: 'Free GED preparation and testing services.', phone: '(301) 722-1234', address: 'Allegany Community College', hours: 'Call for schedule', website: '' },
-        { id: '24', name: 'Vocational Training Program', category: 'Employment', county: 'Allegany', description: 'Technical training in various trades and professions.', phone: '(301) 777-9999', address: 'Allegany Technical Center', hours: 'Mon-Fri 9am-5pm', website: '' },
-        { id: '25', name: 'Job Training Initiative', category: 'Employment', county: 'Allegany', description: 'Free job training and certification programs.', phone: '(301) 722-5000', address: '123 Training Blvd, Cumberland, MD 21502', hours: 'Call for enrollment', website: '' },
-        
-        // Garrett County - Food
-        { id: '26', name: 'Garrett County Food Bank', category: 'Food Assistance', county: 'Garrett', description: 'Regional food bank serving Garrett County with emergency food assistance.', phone: '(301) 334-1234', address: '50 Main St, Oakland, MD 21550', hours: 'Tue & Fri 10am-3pm', website: '' },
-        { id: '27', name: 'Oakland Community Food Pantry', category: 'Food Assistance', county: 'Garrett', description: 'Weekly food distribution to qualified residents.', phone: '(301) 334-5555', address: '200 N 2nd St, Oakland, MD 21550', hours: 'Wed 1pm-4pm', website: '' },
-        { id: '28', name: 'Rural Food Assistance Program', category: 'Food Assistance', county: 'Garrett', description: 'Mobile food pantry serving rural areas of Garrett County.', phone: '(301) 334-6666', address: 'Multiple stops around county', hours: 'Call for schedule', website: '' },
-        { id: '29', name: 'Senior Nutrition Program', category: 'Food Assistance', county: 'Garrett', description: 'Free meals and nutrition assistance for seniors 60+.', phone: '(301) 334-7777', address: 'Senior Center, Oakland', hours: 'Mon-Fri 12pm-1pm', website: '' },
-        { id: '30', name: 'Emergency Food Box Program', category: 'Food Assistance', county: 'Garrett', description: 'Emergency food boxes for families in crisis.', phone: '(301) 334-8888', address: '100 Industrial Park, Oakland, MD 21550', hours: 'Call for availability', website: '' },
-        
-        // Garrett County - Healthcare
-        { id: '31', name: 'Garrett County Health Department', category: 'Healthcare', county: 'Garrett', description: 'Public health services including immunizations and wellness programs.', phone: '(301) 334-6800', address: '205 E Locust St, Oakland, MD 21550', hours: 'Mon-Fri 8am-4pm', website: '' },
-        { id: '32', name: 'Garrett Regional Medical Center', category: 'Healthcare', county: 'Garrett', description: 'Rural hospital providing emergency and inpatient care.', phone: '(301) 334-6000', address: '251 N 4th St, Oakland, MD 21550', hours: '24/7', website: '' },
-        { id: '33', name: 'Mountain Medical Clinic', category: 'Healthcare', county: 'Garrett', description: 'Primary care clinic serving mountain communities.', phone: '(301) 334-5000', address: '100 Main St, Oakland, MD 21550', hours: 'Mon-Fri 9am-5pm', website: '' },
-        { id: '34', name: 'Rural Health Center', category: 'Healthcare', county: 'Garrett', description: 'Comprehensive healthcare for rural and underserved areas.', phone: '(301) 334-6666', address: 'Multiple rural locations', hours: 'Call for hours', website: '' },
-        { id: '35', name: 'Preventive Care Services', category: 'Healthcare', county: 'Garrett', description: 'Wellness screenings and preventive health services.', phone: '(301) 334-7777', address: '50 Health Way, Oakland, MD 21550', hours: 'Mon-Fri 8am-5pm', website: '' },
-        
-        // Garrett County - Housing
-        { id: '36', name: 'Garrett County Community Action', category: 'Housing', county: 'Garrett', description: 'Housing assistance, weatherization, utility assistance, and emergency services for low-income families.', phone: '(301) 334-9431', address: '104 E Center St, Oakland, MD 21550', hours: 'Mon-Fri 8:30am-4:30pm', website: '' },
-        { id: '37', name: 'Rural Housing Assistance', category: 'Housing', county: 'Garrett', description: 'Rural homeownership and rental assistance programs.', phone: '(301) 334-5000', address: '100 Center Ave, Oakland, MD 21550', hours: 'Mon-Fri 9am-4pm', website: '' },
-        { id: '38', name: 'Emergency Shelter - Garrett', category: 'Housing', county: 'Garrett', description: 'Temporary emergency shelter for homeless families.', phone: '(301) 334-9999', address: '200 Shelter Lane, Oakland, MD 21550', hours: '24/7', website: '' },
-        { id: '39', name: 'Home Repair Assistance', category: 'Housing', county: 'Garrett', description: 'Low-cost home repairs for elderly and disabled residents.', phone: '(301) 334-6000', address: 'Various locations', hours: 'Call for details', website: '' },
-        { id: '40', name: 'Utility Assistance Program', category: 'Utilities', county: 'Garrett', description: 'Help with heating, cooling, and utility costs.', phone: '(301) 334-9431', address: '104 E Center St, Oakland, MD 21550', hours: 'Mon-Fri 8:30am-4:30pm', website: '' },
-        
-        // Garrett County - Mental Health
-        { id: '41', name: 'Garrett Mental Health Services', category: 'Mental Health', county: 'Garrett', description: 'Outpatient counseling and psychiatric services.', phone: '(301) 334-4000', address: '100 N 4th St, Oakland, MD 21550', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '42', name: 'Recovery Support Services', category: 'Mental Health', county: 'Garrett', description: 'Substance abuse counseling and recovery support.', phone: '(301) 334-5000', address: '50 Recovery Rd, Oakland, MD 21550', hours: 'Call for hours', website: '' },
-        { id: '43', name: 'Crisis Counseling - Garrett', category: 'Crisis Support', county: 'Garrett', description: 'Immediate crisis counseling and stabilization services.', phone: '(301) 334-8888', address: '24/7 Hotline', hours: '24/7', website: '' },
-        { id: '44', name: 'Behavioral Health Support', category: 'Mental Health', county: 'Garrett', description: 'Individual and group therapy sessions.', phone: '(301) 334-6666', address: '100 Health Plaza, Oakland, MD 21550', hours: 'Mon-Fri 9am-5pm', website: '' },
-        { id: '45', name: 'Peer Recovery Specialist', category: 'Mental Health', county: 'Garrett', description: 'Peer-led support for those in recovery.', phone: '(301) 334-5555', address: 'Multiple community sites', hours: 'Call for schedule', website: '' },
-        
-        // Garrett County - Employment & Education
-        { id: '46', name: 'Mountain Career Services', category: 'Employment', county: 'Garrett', description: 'Job placement and career counseling in rural areas.', phone: '(301) 334-2222', address: '75 Main St, Oakland, MD 21550', hours: 'Mon-Fri 8:30am-4:30pm', website: '' },
-        { id: '47', name: 'Garrett Technical College', category: 'Education', county: 'Garrett', description: 'Technical training and associate degree programs.', phone: '(301) 334-2000', address: '100 College Drive, Oakland, MD 21550', hours: 'Call for class schedule', website: '' },
-        { id: '48', name: 'Adult Education Center - Garrett', category: 'Education', county: 'Garrett', description: 'GED and adult literacy programs.', phone: '(301) 334-1234', address: '50 Learning Lane, Oakland, MD 21550', hours: 'Mon-Fri 9am-4pm', website: '' },
-        { id: '49', name: 'Vocational Services', category: 'Employment', county: 'Garrett', description: 'Vocational assessment and training services.', phone: '(301) 334-6666', address: '100 Training Center, Oakland, MD 21550', hours: 'Mon-Fri 8am-4pm', website: '' },
-        { id: '50', name: 'Youth Employment Program', category: 'Youth Services', county: 'Garrett', description: 'Job training and placement for youth.', phone: '(301) 334-3333', address: '50 Youth Ave, Oakland, MD 21550', hours: 'Call for enrollment', website: '' },
-        
-        // Washington County - Food
-        { id: '51', name: 'Washington County Food Bank', category: 'Food Assistance', county: 'Washington', description: 'Primary food bank for Washington County with multiple distribution sites.', phone: '(240) 313-1111', address: '100 Potomac Way, Hagerstown, MD 21740', hours: 'Mon-Fri 9am-5pm', website: '' },
-        { id: '52', name: 'Hagerstown Community Food Pantry', category: 'Food Assistance', county: 'Washington', description: 'Emergency food assistance for individuals and families.', phone: '(240) 313-2222', address: '200 N Potomac Ave, Hagerstown, MD 21740', hours: 'Tue & Thu 10am-3pm', website: '' },
-        { id: '53', name: 'Faith Community Food Ministry', category: 'Food Assistance', county: 'Washington', description: 'Multi-denominational food assistance through churches.', phone: '(240) 313-3333', address: 'Multiple church locations', hours: 'Various', website: '' },
-        { id: '54', name: 'Mobile Food Pantry - Washington', category: 'Food Assistance', county: 'Washington', description: 'Mobile food distribution serving underserved neighborhoods.', phone: '(240) 313-4444', address: 'Rotating weekly stops', hours: 'Call for schedule', website: '' },
-        { id: '55', name: 'Senior Meals - Washington', category: 'Food Assistance', county: 'Washington', description: 'Free lunch and dinner programs for seniors 60+.', phone: '(240) 313-5555', address: 'Multiple senior centers', hours: 'Mon-Fri 12pm-1pm', website: '' },
-        
-        // Washington County - Healthcare
-        { id: '56', name: 'Washington County Health Department', category: 'Healthcare', county: 'Washington', description: 'Public health services, immunizations, family planning services.', phone: '(240) 313-3310', address: '339 E Antietam St, Hagerstown, MD 21740', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '57', name: 'Meritus Medical Center - Hagerstown', category: 'Healthcare', county: 'Washington', description: 'Full-service hospital with ER, inpatient and outpatient services.', phone: '(301) 790-8000', address: '11116 Medical Campus Rd, Hagerstown, MD 21742', hours: '24/7', website: 'https://meritushealth.com' },
-        { id: '58', name: 'Downtown Health Center', category: 'Healthcare', county: 'Washington', description: 'Primary care clinic in downtown Hagerstown.', phone: '(240) 313-6666', address: '50 N Potomac Ave, Hagerstown, MD 21740', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '59', name: 'Comprehensive Dental Clinic', category: 'Healthcare', county: 'Washington', description: 'Affordable dental services including preventive and restorative care.', phone: '(240) 313-7777', address: '100 Dental Plaza, Hagerstown, MD 21740', hours: 'Mon-Fri 9am-5pm, Sat 10am-2pm', website: '' },
-        { id: '60', name: 'Women and Children Healthcare', category: 'Healthcare', county: 'Washington', description: 'OB/GYN and pediatric care on sliding fee scale.', phone: '(240) 313-8888', address: '150 Women\'s Way, Hagerstown, MD 21740', hours: 'Mon-Fri 9am-5pm', website: '' },
-        
-        // Washington County - Housing
-        { id: '61', name: 'Washington County Housing Authority', category: 'Housing', county: 'Washington', description: 'Public housing and rental assistance programs.', phone: '(240) 313-9000', address: '25 N Potomac Ave, Hagerstown, MD 21740', hours: 'Mon-Fri 8:30am-4:30pm', website: '' },
-        { id: '62', name: 'Community Action Program - Washington', category: 'Housing', county: 'Washington', description: 'Housing assistance, utility help, and weatherization services.', phone: '(240) 313-9999', address: '100 E Washington St, Hagerstown, MD 21740', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '63', name: 'Emergency Shelter - Hagerstown', category: 'Housing', county: 'Washington', description: 'Temporary shelter for homeless individuals and families.', phone: '(240) 313-8000', address: '200 Shelter Road, Hagerstown, MD 21740', hours: '24/7', website: '' },
-        { id: '64', name: 'Homeless Outreach Services', category: 'Housing', county: 'Washington', description: 'Outreach and supportive housing for chronically homeless.', phone: '(240) 313-7000', address: '100 Support St, Hagerstown, MD 21740', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '65', name: 'Home Rehabilitation Program', category: 'Housing', county: 'Washington', description: 'Home repairs and improvements for low-income homeowners.', phone: '(240) 313-6000', address: 'Various locations', hours: 'Call for appointment', website: '' },
-        
-        // Washington County - Mental Health & Crisis
-        { id: '66', name: 'Washington County Mental Health Authority', category: 'Mental Health', county: 'Washington', description: 'Mental health services, crisis intervention, and substance abuse treatment referrals.', phone: '(240) 313-3310', address: '339 E Antietam St, Hagerstown, MD 21740', hours: '24/7 Crisis Line Available', website: '' },
-        { id: '67', name: 'Integrated Behavioral Health', category: 'Mental Health', county: 'Washington', description: 'Outpatient psychiatric and counseling services.', phone: '(240) 313-5000', address: '100 Behavioral Way, Hagerstown, MD 21740', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '68', name: 'Substance Abuse Treatment Center', category: 'Mental Health', county: 'Washington', description: 'Inpatient and outpatient addiction treatment programs.', phone: '(240) 313-4000', address: '250 Recovery Lane, Hagerstown, MD 21740', hours: 'Call for details', website: '' },
-        { id: '69', name: 'Peer Support Network', category: 'Mental Health', county: 'Washington', description: 'Peer-led support groups and recovery meetings.', phone: '(240) 313-3000', address: 'Multiple community locations', hours: 'Call for schedule', website: '' },
-        { id: '70', name: 'Family Counseling Services', category: 'Mental Health', county: 'Washington', description: 'Individual, family, and group therapy services.', phone: '(240) 313-2000', address: '75 Family Lane, Hagerstown, MD 21740', hours: 'Mon-Fri 9am-5pm, Sat by appointment', website: '' },
-        
-        // Washington County - Employment
-        { id: '71', name: 'Hagerstown Workforce Center', category: 'Employment', county: 'Washington', description: 'Job training, placement, and career counseling services.', phone: '(240) 313-1000', address: '100 North Potomac Ave, Hagerstown, MD 21740', hours: 'Mon-Fri 8:30am-4:30pm', website: '' },
-        { id: '72', name: 'Technical Training Institute', category: 'Education', county: 'Washington', description: 'Technical and skilled trades training programs.', phone: '(240) 313-2000', address: '200 Technical Drive, Hagerstown, MD 21740', hours: 'Call for class schedule', website: '' },
-        { id: '73', name: 'Adult Literacy Program', category: 'Education', county: 'Washington', description: 'GED, ESL, and adult education classes.', phone: '(240) 313-3000', address: '150 Education Way, Hagerstown, MD 21740', hours: 'Mon-Fri 9am-8pm', website: '' },
-        { id: '74', name: 'Career Pathways Program', category: 'Employment', county: 'Washington', description: 'Career assessment and job placement services.', phone: '(240) 313-4000', address: '100 Career Ave, Hagerstown, MD 21740', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '75', name: 'Youth Training Initiative', category: 'Youth Services', county: 'Washington', description: 'Job training and internship programs for youth 16-24.', phone: '(240) 313-5000', address: '50 Youth Center, Hagerstown, MD 21740', hours: 'Call for enrollment', website: '' },
-        
-        // All Counties - Transportation
-        { id: '76', name: 'Allegany Transportation Services', category: 'Transportation', county: 'Allegany', description: 'Demand-response transit service for medical appointments and essential trips.', phone: '(301) 722-0811', hours: 'Mon-Fri 6am-6pm', website: '' },
-        { id: '77', name: 'Mountain Transit - Garrett', category: 'Transportation', county: 'Garrett', description: 'Regional transit service for Garrett County residents.', phone: '(301) 334-2121', address: 'Multiple stops throughout county', hours: 'Call for schedule', website: '' },
-        { id: '78', name: 'Hagerstown Transit', category: 'Transportation', county: 'Washington', description: 'Public bus system serving Hagerstown and surrounding areas.', phone: '(240) 313-2000', address: 'Multiple transit stations', hours: 'Call for routes and hours', website: '' },
-        { id: '79', name: 'Medical Transport Services', category: 'Transportation', county: 'All Counties', description: 'Non-emergency medical transportation to appointments.', phone: '(301) 722-0811', address: 'Service throughout Western MD', hours: 'Mon-Fri 7am-5pm', website: '' },
-        { id: '80', name: 'Senior Transportation Program', category: 'Transportation', county: 'All Counties', description: 'Free transportation for seniors to medical and social events.', phone: '(301) 777-2222', address: 'Multiple counties', hours: 'Call for details', website: '' },
-        
-        // Veterans Services
-        { id: '81', name: 'VA Medical Center', category: 'Veterans', county: 'Washington', description: 'Veterans healthcare and benefits services.', phone: '(240) 313-5000', address: '100 Veterans Way, Hagerstown, MD 21740', hours: 'Mon-Fri 7am-5pm', website: '' },
-        { id: '82', name: 'Veterans Services - Allegany', category: 'Veterans', county: 'Allegany', description: 'County veteran services and benefits information.', phone: '(301) 777-7777', address: '100 Veteran Ave, Cumberland, MD 21502', hours: 'Mon-Fri 9am-4pm', website: '' },
-        { id: '83', name: 'Veteran Support Network', category: 'Veterans', county: 'All Counties', description: 'Support groups and peer counseling for veterans.', phone: '(301) 722-1111', address: 'Multiple community locations', hours: 'Call for schedule', website: '' },
-        { id: '84', name: 'Housing for Veterans Program', category: 'Housing', county: 'All Counties', description: 'Supportive housing for homeless and at-risk veterans.', phone: '(240) 313-8888', address: 'Multiple locations', hours: 'Call for info', website: '' },
-        { id: '85', name: 'Veterans Employment Services', category: 'Employment', county: 'All Counties', description: 'Job training and placement for veterans.', phone: '(301) 777-3333', address: 'Workforce Centers', hours: 'Mon-Fri 8am-4:30pm', website: '' },
-        
-        // Senior Services
-        { id: '86', name: 'Garrett County Senior Center', category: 'Senior Services', county: 'Garrett', description: 'Meals, activities, transportation, and social services for seniors 60+.', phone: '(301) 334-9011', address: '80 N 4th St, Oakland, MD 21550', hours: 'Mon-Fri 9am-3pm', website: '' },
-        { id: '87', name: 'Allegany Senior Center', category: 'Senior Services', county: 'Allegany', description: 'Activities, meals, and social programs for seniors.', phone: '(301) 722-1234', address: '100 Senior Lane, Cumberland, MD 21502', hours: 'Mon-Fri 9am-4pm', website: '' },
-        { id: '88', name: 'Hagerstown Senior Center', category: 'Senior Services', county: 'Washington', description: 'Comprehensive senior services and activities.', phone: '(240) 313-1234', address: '50 Senior Way, Hagerstown, MD 21740', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '89', name: 'Elder Care Services', category: 'Senior Services', county: 'All Counties', description: 'In-home care and supportive services for elderly residents.', phone: '(301) 777-6666', address: 'Service throughout Western MD', hours: 'Call for details', website: '' },
-        { id: '90', name: 'Caregiver Support Program', category: 'Senior Services', county: 'All Counties', description: 'Support and respite care for family caregivers.', phone: '(240) 313-9999', address: 'Multiple locations', hours: 'Call for hours', website: '' },
-        
-        // Legal Aid & Disability Services
-        { id: '91', name: 'Legal Aid Bureau', category: 'Legal Aid', county: 'All Counties', description: 'Free legal services for low-income residents.', phone: '(240) 313-5555', address: '100 Law Plaza, Hagerstown, MD 21740', hours: 'Mon-Fri 9am-5pm', website: '' },
-        { id: '92', name: 'Disability Rights Services', category: 'Disability Services', county: 'All Counties', description: 'Advocacy and support for individuals with disabilities.', phone: '(301) 722-8888', address: 'Multiple locations', hours: 'Call for hours', website: '' },
-        { id: '93', name: 'SSI/SSDI Assistance', category: 'Disability Services', county: 'All Counties', description: 'Help with Social Security disability applications and appeals.', phone: '(240) 313-6666', address: 'Social Security offices', hours: 'Call for details', website: '' },
-        { id: '94', name: 'Vocational Rehabilitation', category: 'Disability Services', county: 'All Counties', description: 'Employment services for individuals with disabilities.', phone: '(301) 777-4444', address: 'Multiple locations', hours: 'Mon-Fri 8am-4pm', website: '' },
-        { id: '95', name: 'Accessibility Services', category: 'Disability Services', county: 'All Counties', description: 'Accommodations and accessibility support services.', phone: '(240) 313-7777', address: 'Serves multiple counties', hours: 'Call for services', website: '' },
-        
-        // Child & Youth Services
-        { id: '96', name: 'Child Protective Services', category: 'Youth Services', county: 'All Counties', description: 'Child welfare and protection services.', phone: '1-800-332-6347', address: 'Multiple county offices', hours: '24/7', website: '' },
-        { id: '97', name: 'Youth Mentoring Program', category: 'Youth Services', county: 'All Counties', description: 'Mentoring and support programs for at-risk youth.', phone: '(301) 722-5555', address: 'Multiple locations', hours: 'Call for schedule', website: '' },
-        { id: '98', name: 'After School Programs', category: 'Youth Services', county: 'All Counties', description: 'Safe, supervised activities for school-age children.', phone: '(240) 313-3333', address: 'Various schools and community centers', hours: '3pm-6pm school days', website: '' },
-        { id: '99', name: 'Domestic Violence Services', category: 'Youth Services', county: 'All Counties', description: 'Shelter and support for domestic violence survivors and children.', phone: '1-800-799-7233', address: 'Confidential locations', hours: '24/7', website: '' },
-        { id: '100', name: 'Parenting Support Classes', category: 'Youth Services', county: 'All Counties', description: 'Free parenting workshops and support groups.', phone: '(301) 777-1111', address: 'Community centers', hours: 'Various evenings', website: '' },
-        
-        // Additional Services - Education & Other
-        { id: '101', name: 'Public Library System - Western MD', category: 'Education', county: 'All Counties', description: 'Free educational resources, computer access, and programs.', phone: '(301) 777-1111', address: 'Multiple library branches', hours: 'Call for hours', website: '' },
-        { id: '102', name: 'Community College Programs', category: 'Education', county: 'All Counties', description: 'Affordable college and workforce training programs.', phone: '(301) 784-5000', address: 'Allegany Community College', hours: 'Call for info', website: '' },
-        { id: '103', name: 'Utility Assistance - All Counties', category: 'Utilities', county: 'All Counties', description: 'Help with heating, cooling, and utility bill payments.', phone: '(240) 313-9999', address: 'Community Action offices', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '104', name: 'Emergency Assistance Fund', category: 'Other', county: 'All Counties', description: 'Emergency financial assistance for crisis situations.', phone: '(301) 777-0000', address: 'Social Services offices', hours: 'Call for eligibility', website: '' },
-        { id: '105', name: 'SNAP Benefits Program', category: 'Food Assistance', county: 'All Counties', description: 'Food Stamp assistance and SNAP enrollment.', phone: '1-855-MYMDHELP', address: 'Social Services offices', hours: 'Mon-Fri 8am-5pm', website: '' },
-        
-        // Additional diversified resources to reach 120+
-        { id: '106', name: 'Early Intervention Services', category: 'Youth Services', county: 'All Counties', description: 'Early intervention for infants and toddlers with developmental delays.', phone: '(240) 313-5555', address: 'Multiple locations', hours: 'Call for referral', website: '' },
-        { id: '107', name: 'Immunization Clinics', category: 'Healthcare', county: 'All Counties', description: 'Free and low-cost immunization services.', phone: '(301) 777-2222', address: 'Health department offices', hours: 'Call for schedule', website: '' },
-        { id: '108', name: 'HIV/AIDS Services', category: 'Healthcare', county: 'All Counties', description: 'Testing, treatment, and support services.', phone: '(240) 313-4444', address: 'Health services offices', hours: 'Call for hours', website: '' },
-        { id: '109', name: 'WIC Program', category: 'Food Assistance', county: 'All Counties', description: 'Women, Infants and Children nutrition program.', phone: '(240) 313-3333', address: 'Health department offices', hours: 'Mon-Fri 9am-4pm', website: '' },
-        { id: '110', name: 'Refugee Services', category: 'Other', county: 'All Counties', description: 'Support services for refugees and immigrants.', phone: '(240) 313-6666', address: 'Social Services', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '111', name: 'Domestic Violence Hotline', category: 'Crisis Support', county: 'All Counties', description: '24/7 confidential support for domestic violence victims.', phone: '1-800-799-7233', address: 'Hotline service', hours: '24/7', website: '' },
-        { id: '112', name: 'Substance Abuse Helpline', category: 'Crisis Support', county: 'All Counties', description: '24/7 substance abuse support and referral.', phone: '1-800-662-4357', address: 'Hotline service', hours: '24/7', website: '' },
-        { id: '113', name: 'Tax Assistance Program', category: 'Other', county: 'All Counties', description: 'Free tax preparation for low-income filers.', phone: '(240) 313-7777', address: 'Community centers', hours: 'Feb-Apr (seasonal)', website: '' },
-        { id: '114', name: 'Financial Literacy Classes', category: 'Education', county: 'All Counties', description: 'Free financial management and credit counseling.', phone: '(301) 777-3333', address: 'Community centers', hours: 'Various evenings', website: '' },
-        { id: '115', name: 'Home Energy Efficiency', category: 'Utilities', county: 'All Counties', description: 'Weatherization and energy efficiency improvements.', phone: '(240) 313-8888', address: 'Community Action', hours: 'Mon-Fri 8am-5pm', website: '' },
-        { id: '116', name: 'Medication Assistance Program', category: 'Healthcare', county: 'All Counties', description: 'Help accessing affordable medications.', phone: '(301) 722-2222', address: 'Health services', hours: 'Call for details', website: '' },
-        { id: '117', name: 'Smoking Cessation Program', category: 'Healthcare', county: 'All Counties', description: 'Free quit smoking support and resources.', phone: '1-800-QUIT-NOW', address: 'Telephone and online', hours: 'Call for details', website: '' },
-        { id: '118', name: 'Hospice Care Services', category: 'Healthcare', county: 'All Counties', description: 'End-of-life care and support services.', phone: '(240) 313-5000', address: 'Multiple locations', hours: '24/7', website: '' },
-        { id: '119', name: 'Volunteer Opportunities', category: 'Other', county: 'All Counties', description: 'Community volunteer programs and service opportunities.', phone: '(301) 777-1234', address: 'Various organizations', hours: 'Call for details', website: '' },
-        { id: '120', name: 'Community Garden Program', category: 'Other', county: 'All Counties', description: 'Free community gardens providing fresh produce.', phone: '(240) 313-2222', address: 'Multiple locations', hours: 'Seasonal hours', website: '' }
+        { id: '1', organizationName: 'Western Maryland Food Bank', serviceTypes: ['Food Assistance', 'SNAP'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-6191', address: '120 N Centre St, Cumberland, MD 21502', state: 'MD', zip: '21502', population: 'General Population', servicesOffered: 'Emergency food assistance and distribution', eligibility: 'Low-income families', restrictions: 'Must provide proof of residency' },
+        { id: '2', organizationName: 'Allegany County Health Department', serviceTypes: ['Healthcare', 'Primary Care'], county: 'Allegany', city: 'Cumberland', phone: '(301) 759-5000', address: '12501 Willowbrook Rd, Cumberland, MD 21502', state: 'MD', zip: '21502', population: 'General Population', servicesOffered: 'Immunizations, family planning, WIC services', eligibility: 'All residents', restrictions: 'Sliding fee scale' },
+        { id: '3', organizationName: 'Garrett County Community Action', serviceTypes: ['Housing', 'Utility Assistance'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9431', address: '104 E Center St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Families', servicesOffered: 'Housing assistance, weatherization, utility help', eligibility: 'Low-income residents', restrictions: 'Annual income limits apply' },
+        { id: '4', organizationName: 'Washington County Mental Health Authority', serviceTypes: ['Mental Health', 'Crisis', 'Substance Abuse'], county: 'Washington', city: 'Hagerstown', phone: '(240) 313-3310', address: '339 E Antietam St, Hagerstown, MD 21740', state: 'MD', zip: '21740', population: 'General Population', servicesOffered: 'Mental health counseling, crisis intervention, addiction treatment', eligibility: 'All residents', restrictions: '24/7 crisis line available' },
+        { id: '5', organizationName: 'Maryland Job Service', serviceTypes: ['Employment', 'Job Training', 'GED Classes'], county: 'All Counties', city: 'Multiple', phone: '(301) 777-2100', address: 'Multiple locations throughout Western MD', state: 'MD', population: 'General Population', servicesOffered: 'Job placement, resume help, training programs', eligibility: 'Unemployed and underemployed', restrictions: 'Must be 18+' },
+        { id: '6', organizationName: 'Allegany Transportation Services', serviceTypes: ['Transportation'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-0811', address: '', state: 'MD', population: 'Seniors', servicesOffered: 'Demand-response transit service', eligibility: 'All residents', restrictions: 'Mon-Fri 6am-6pm' },
+        { id: '7', organizationName: 'Crisis Hotline - Western Maryland', serviceTypes: ['Crisis Support'], county: 'All Counties', city: 'Multiple', phone: '988 (Suicide & Crisis Lifeline)', address: '', state: 'MD', population: 'General Population', servicesOffered: '24/7 crisis support for mental health emergencies', eligibility: 'Anyone in crisis', restrictions: 'Available 24 hours, 7 days a week' },
+        { id: '8', organizationName: 'Garrett County Senior Center', serviceTypes: ['Senior Services', 'Meals'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9011', address: '80 N 4th St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Seniors', servicesOffered: 'Meals, activities, transportation', eligibility: 'Seniors 60+', restrictions: 'Age requirement' },
+        { id: '9', organizationName: 'Legal Aid Bureau', serviceTypes: ['Legal Aid'], county: 'All Counties', city: 'Multiple', phone: '(240) 313-5555', address: '100 Law Plaza, Hagerstown, MD 21740', state: 'MD', population: 'General Population', servicesOffered: 'Free legal services', eligibility: 'Low-income residents', restrictions: 'Income limits apply' },
+        { id: '10', organizationName: 'Early Intervention Services', serviceTypes: ['Youth Services'], county: 'All Counties', city: 'Multiple', phone: '(240) 313-5555', address: '', state: 'MD', population: 'Children & Youth', servicesOffered: 'Early intervention for children with delays', eligibility: 'Children under 3', restrictions: 'Referral required' },
+        { id: '11', organizationName: 'Meritus Medical Center', serviceTypes: ['Healthcare', 'Emergency Care'], county: 'Washington', city: 'Hagerstown', phone: '(301) 790-8000', address: '11116 Medical Campus Rd, Hagerstown, MD 21742', state: 'MD', population: 'General Population', servicesOffered: 'Full-service hospital with emergency care', eligibility: 'All residents', restrictions: 'Emergency care 24/7' },
+        { id: '12', organizationName: 'Family Services Center', serviceTypes: ['Family Services', 'Counseling'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-4567', address: '100 Family Ave, Cumberland, MD 21502', state: 'MD', population: 'Families', servicesOffered: 'Family counseling and support services', eligibility: 'Families with children', restrictions: 'Sliding fee scale' }
       ];
     }
 
-    // Render resources
-    function renderResources() {
-      const container = document.getElementById('resources-container');
-      const container2 = document.getElementById('resources-container-2');
+    function populateDropdowns() {
+      const countySelect = document.getElementById('f-county');
+      counties.forEach(c => { countySelect.innerHTML += `<option value="${c}">${c}</option>`; });
       
-      let filtered = allResources;
+      const popSelect = document.getElementById('f-population');
+      populations.forEach(p => { popSelect.innerHTML += `<option value="${p}">${p}</option>`; });
       
-      if (currentCategory !== 'all') {
-        filtered = filtered.filter(r => r.category === currentCategory);
-      }
+      const filterCounty = document.getElementById('filter-county');
+      counties.forEach(c => { filterCounty.innerHTML += `<option value="${c}">${c}</option>`; });
       
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        filtered = filtered.filter(r => 
-          r.name?.toLowerCase().includes(query) ||
-          r.description?.toLowerCase().includes(query) ||
-          r.category?.toLowerCase().includes(query) ||
-          r.county?.toLowerCase().includes(query)
-        );
-      }
-      
-      const html = filtered.length ? `
-        <div class="resources-grid">
-          ${filtered.map(resource => renderResourceCard(resource)).join('')}
-        </div>
-      ` : `
-        <div class="empty-state">
-          <h3>No resources found</h3>
-          <p>Try adjusting your search or category filter.</p>
-        </div>
-      `;
-      
-      if (container) container.innerHTML = html;
-      if (container2) container2.innerHTML = html;
+      const filterService = document.getElementById('filter-service');
+      serviceTypes.forEach(s => { filterService.innerHTML += `<option value="${s}">${s}</option>`; });
     }
 
-    // Render single resource card
-    function renderResourceCard(resource) {
-      return `
-        <div class="resource-card">
-          <div class="resource-header">
-            <h3>${escapeHtml(resource.name)}</h3>
-            <span class="category-badge">${escapeHtml(resource.category)}</span>
-          </div>
-          <p>${escapeHtml(resource.description || '')}</p>
-          <div class="resource-details">
-            ${resource.county ? `<span>📍 ${escapeHtml(resource.county)} County</span>` : ''}
-            ${resource.phone ? `<span>📞 ${escapeHtml(resource.phone)}</span>` : ''}
-            ${resource.address ? `<span>🏢 ${escapeHtml(resource.address)}</span>` : ''}
-            ${resource.hours ? `<span>🕐 ${escapeHtml(resource.hours)}</span>` : ''}
-          </div>
-          <div class="resource-actions">
-            ${resource.phone ? `<a href="tel:${resource.phone}" class="btn-primary">📞 Call</a>` : ''}
-            ${resource.website ? `<a href="${escapeHtml(resource.website)}" target="_blank" rel="noopener" class="btn-secondary">🌐 Website</a>` : ''}
-          </div>
-        </div>
-      `;
-    }
-
-    // Escape HTML to prevent XSS
-    function escapeHtml(text) {
-      if (!text) return '';
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // Set category filter
-    function setCategory(category) {
-      currentCategory = category;
-      
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.category === category);
+    function populateServiceCheckboxes(containerId = 'service-checkboxes', selected = []) {
+      const el = document.getElementById(containerId);
+      let html = '';
+      Object.entries(serviceCategories).forEach(([cat, svcs]) => {
+        html += `<div class="category-header">${cat}</div><div class="checkbox-grid">`;
+        svcs.forEach(s => {
+          const chk = selected.includes(s) ? 'checked' : '';
+          const name = containerId === 'service-checkboxes' ? 'serviceTypes' : 'editServiceTypes';
+          html += `<label class="service-checkbox"><input type="checkbox" name="${name}" value="${s}" ${chk}><span>${s}</span></label>`;
+        });
+        html += '</div>';
       });
-      
-      renderResources();
+      el.innerHTML = html;
     }
 
-    // Filter by search
-    function filterResources() {
-      searchQuery = document.getElementById('search-input').value;
-      renderResources();
+    function getSelectedServices(name = 'serviceTypes') {
+      return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(c => c.value);
     }
 
-    // Toggle admin panel
-    function toggleAdmin() {
-      const panel = document.getElementById('admin-panel');
-      panel.classList.toggle('show');
-      
-      if (panel.classList.contains('show')) {
-        panel.scrollIntoView({ behavior: 'smooth' });
-      }
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+      document.getElementById('page-' + page).classList.remove('hidden');
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      if (page === 'dashboard') updateDashboard();
+      if (page === 'search') doSearch();
     }
 
-    // Save resource to Firestore
-    async function saveResource(event) {
-      event.preventDefault();
+    function updateDashboard() {
+      document.getElementById('stat-total').textContent = resources.length;
+      const svcs = new Set();
+      resources.forEach(r => (r.serviceTypes || []).forEach(s => svcs.add(s)));
+      document.getElementById('stat-services').textContent = svcs.size;
+      document.getElementById('stat-counties').textContent = new Set(resources.map(r => r.county)).size;
+      document.getElementById('stat-populations').textContent = new Set(resources.map(r => r.population)).size;
+    }
+
+    function doSearch() {
+      const q = document.getElementById('search-input').value.toLowerCase();
+      const county = document.getElementById('filter-county').value;
+      const svc = document.getElementById('filter-service').value;
       
-      const resource = {
-        name: document.getElementById('name').value,
-        category: document.getElementById('category').value,
-        county: document.getElementById('county').value,
-        phone: document.getElementById('phone').value,
-        email: document.getElementById('email').value,
-        website: document.getElementById('website').value,
-        address: document.getElementById('address').value,
-        description: document.getElementById('description').value,
-        hours: document.getElementById('hours').value,
-        eligibility: document.getElementById('eligibility').value,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      let filtered = resources;
+      if (q) filtered = filtered.filter(r => [r.organizationName, r.servicesOffered, r.county, (r.serviceTypes||[]).join(' '), r.population].join(' ').toLowerCase().includes(q));
+      if (county) filtered = filtered.filter(r => r.county === county);
+      if (svc) filtered = filtered.filter(r => (r.serviceTypes || []).includes(svc));
+      
+      document.getElementById('results-count').textContent = `${filtered.length} resource${filtered.length !== 1 ? 's' : ''}`;
+      document.getElementById('results').innerHTML = filtered.length ? filtered.map(r => `<div class="resource-card" onclick="showResource('${r.id}')"><h3>${r.organizationName}</h3><p>${r.servicesOffered || ''}</p><p style="font-size: 0.85rem;">📍 ${r.city || ''}, ${r.county}</p></div>`).join('') : '<p style="text-align: center; grid-column: 1/-1;">No resources found.</p>';
+    }
+
+    function resetFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('filter-county').value = '';
+      document.getElementById('filter-service').value = '';
+      doSearch();
+    }
+
+    function showResource(id) {
+      const r = resources.find(x => x.id === id);
+      if (!r) return;
+      document.getElementById('modal-title').textContent = r.organizationName;
+      document.getElementById('modal-body').innerHTML = `
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+          ${(r.serviceTypes||[]).map(s => `<span style="background: rgba(45, 90, 71, 0.1); color: var(--forest); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem;">${s}</span>`).join('')}
+          <span style="background: rgba(135, 169, 143, 0.2); color: var(--sage); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem;">${r.county}</span>
+        </div>
+        ${r.phone ? `<p><strong>📞 Phone:</strong> <a href="tel:${r.phone}" style="color: var(--forest);">${r.phone}</a></p>` : ''}
+        ${r.email ? `<p><strong>📧 Email:</strong> <a href="mailto:${r.email}" style="color: var(--forest);">${r.email}</a></p>` : ''}
+        ${r.website ? `<p><strong>🌐 Website:</strong> <a href="${r.website}" target="_blank" style="color: var(--forest);">${r.website}</a></p>` : ''}
+        ${r.address ? `<p><strong>📍 Address:</strong> ${r.address}, ${r.city}, ${r.state} ${r.zip}</p>` : ''}
+        ${r.servicesOffered ? `<div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--warm-border);"><strong>Services:</strong><p>${r.servicesOffered}</p></div>` : ''}
+        ${r.eligibility ? `<div style="margin-top: 1rem;"><strong>Eligibility:</strong><p>${r.eligibility}</p></div>` : ''}
+        ${r.restrictions ? `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; border-radius: 4px;"><strong style="color: #856404;">⚠️ Restrictions:</strong><p style="color: #856404; margin-top: 0.5rem;">${r.restrictions}</p></div>` : ''}
+        ${r.population ? `<p style="margin-top: 1rem;"><strong>Population Served:</strong> ${r.population}</p>` : ''}
+      `;
+      document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="btn-secondary">Close</button>`;
+      document.getElementById('modal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('show');
+    }
+
+    async function addResource(e) {
+      e.preventDefault();
+      const svcs = getSelectedServices('serviceTypes');
+      if (!svcs.length) { toast('Select a service'); return; }
+      
+      const r = {
+        id: Date.now().toString(),
+        organizationName: document.getElementById('f-name').value,
+        serviceTypes: svcs,
+        county: document.getElementById('f-county').value,
+        phone: document.getElementById('f-phone').value,
+        email: document.getElementById('f-email').value,
+        website: document.getElementById('f-website').value,
+        address: document.getElementById('f-address').value,
+        city: document.getElementById('f-city').value,
+        state: document.getElementById('f-state').value,
+        zip: document.getElementById('f-zip').value,
+        servicesOffered: document.getElementById('f-services').value,
+        population: document.getElementById('f-population').value || 'General Population',
+        eligibility: document.getElementById('f-eligibility').value,
+        restrictions: document.getElementById('f-restrictions').value
       };
       
-      try {
-        await db.collection('resources').add(resource);
-        showToast('Resource saved successfully!');
-        document.getElementById('resource-form').reset();
-        toggleAdmin();
-        loadResources();
-      } catch (error) {
-        console.error('Error saving:', error);
-        
-        resource.id = Date.now().toString();
-        allResources.push(resource);
-        renderResources();
-        
-        showToast('Saved locally (Firebase unavailable)', 'error');
-        document.getElementById('resource-form').reset();
-        toggleAdmin();
-      }
+      resources.push(r);
+      resources.sort((a,b) => a.organizationName.localeCompare(b.organizationName));
+      await saveToCloud();
+      clearForm();
+      updateDashboard();
+      toast('Resource added!');
     }
 
-    // Show page (simple routing)
-    function showPage(page) {
-      currentPage = page;
-      const hero = document.getElementById('hero-section');
-      const filters = document.getElementById('filters');
-      
-      // Hide all pages
-      document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-      
-      // Update nav buttons
-      document.querySelectorAll('nav button').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      event.target.classList.add('active');
-      
-      // Show selected page
-      const pageEl = document.getElementById('page-' + page);
-      if (pageEl) pageEl.classList.add('active');
-      
-      if (page === 'home') {
-        hero.classList.remove('hidden');
-        filters.classList.remove('hidden');
-        currentCategory = 'all';
-        searchQuery = '';
-        document.getElementById('search-input').value = '';
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.category === 'all');
-        });
-        renderResources();
-      } else if (page === 'resources') {
-        hero.classList.add('hidden');
-        filters.classList.remove('hidden');
-        renderResources();
-      } else if (page === 'about') {
-        hero.classList.add('hidden');
-        filters.classList.add('hidden');
-      }
+    function clearForm() {
+      document.getElementById('add-form').reset();
+      document.getElementById('f-state').value = 'MD';
+      populateServiceCheckboxes();
     }
 
-    // Show toast notification
-    function showToast(message, type = 'success') {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.className = 'toast show' + (type === 'error' ? ' error' : '');
-      
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
+    function toast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      document.getElementById('toast-container').appendChild(t);
+      setTimeout(() => t.remove(), 3000);
     }
+
+    // Start
+    init();
   </script>
 </body>
 </html>

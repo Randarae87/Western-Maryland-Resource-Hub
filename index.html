@@ -191,7 +191,7 @@
       border-radius: 12px;
       padding: 1.5rem;
       border: 1px solid var(--warm-border);
-      card-shadow;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       transition: all 0.2s;
       cursor: pointer;
     }
@@ -268,7 +268,7 @@
       padding: 2rem;
       margin-bottom: 2rem;
       border: 2px solid var(--warm-border);
-      card-shadow;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
     
     .admin-panel.show {
@@ -336,7 +336,59 @@
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
-      modal-enter;
+      animation: modalIn 0.2s ease;
+    }
+
+    /* Info Pages */
+    .info-page {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      line-height: 1.8;
+    }
+
+    .info-page h2 {
+      color: var(--forest);
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .info-page h3 {
+      color: var(--forest);
+      font-size: 1.2rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .info-page p {
+      margin-bottom: 1rem;
+      color: var(--warm-gray);
+    }
+
+    .info-page a {
+      color: var(--forest);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .info-page a:hover {
+      text-decoration: underline;
+    }
+
+    /* Contact Section */
+    .contact-section {
+      background: rgba(45, 90, 71, 0.05);
+      border-left: 4px solid var(--forest);
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+    }
+
+    .contact-section strong {
+      color: var(--forest);
+      display: block;
+      margin-bottom: 0.5rem;
     }
     
     /* Footer */
@@ -435,6 +487,7 @@
         <button onclick="showPage('add')">Add Resource</button>
         <button onclick="showPage('import')">Import/Export</button>
         <button onclick="showPage('discover')">Discover Online</button>
+        <button onclick="showPage('about')">About</button>
       </nav>
       <div class="sync-status sync-online" id="sync-status">🟢 Cloud Synced</div>
     </div>
@@ -470,7 +523,7 @@
       <h2 style="color: var(--forest); font-size: 1.8rem; margin-bottom: 1.5rem;">Search Resources</h2>
       <div class="bg-white rounded-lg p-6 card-shadow mb-6">
         <div class="flex flex-wrap gap-4 mb-4">
-          <input type="text" id="search-input" placeholder="Search by name, service, keyword..." class="flex-1 min-w-[200px] px-4 py-2 border-2 border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest" oninput="doSearch()">
+          <input type="text" id="search-input" placeholder="Search by name, service, keyword..." class="flex-1 min-w-[200px] px-4 py-2 border-2 border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-forest/30" oninput="doSearch()">
           <select id="filter-county" class="px-4 py-2 border-2 border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-forest/30" onchange="doSearch()">
             <option value="">All Counties</option>
           </select>
@@ -672,6 +725,126 @@
         </div>
       </div>
     </div>
+
+    <!-- About Page -->
+    <div id="page-about" class="page hidden">
+      <div class="info-page">
+        <h2>About Western Maryland Resource Hub</h2>
+        
+        <h3>Our Mission</h3>
+        <p>The Western Maryland Resource Hub is dedicated to connecting individuals and families in Allegany, Garrett, and Washington counties with essential services and support. We believe everyone deserves access to quality resources regardless of their circumstances.</p>
+        
+        <h3>What We Do</h3>
+        <p>We maintain a comprehensive, regularly updated database of local, state, and national resources covering everything from food assistance and housing to mental health services, employment support, and specialized programs for veterans, seniors, and other vulnerable populations.</p>
+        
+        <h3>Our Commitment</h3>
+        <p>We are committed to:</p>
+        <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+          <li>✓ Keeping resource information accurate and current</li>
+          <li>✓ Making our database accessible to all users</li>
+          <li>✓ Serving all counties in Western Maryland equitably</li>
+          <li>✓ Protecting user privacy and data security</li>
+          <li>✓ Continuously expanding our resource coverage</li>
+        </ul>
+
+        <h3>Get Involved</h3>
+        <p>Know of a resource we're missing? Have suggestions for improvement? We'd love to hear from you! You can submit new resources directly through our platform or contact us with feedback.</p>
+
+        <div class="contact-section">
+          <strong>📧 Contact & Support</strong>
+          <p><a href="mailto:supportwmrh@wmresourcehub.com">supportwmrh@wmresourcehub.com</a></p>
+        </div>
+
+        <h3>Related Pages</h3>
+        <p>
+          <a href="#" onclick="showPage('privacy'); return false;">Privacy Policy</a> | 
+          <a href="#" onclick="showPage('terms'); return false;">Terms of Use</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Privacy Policy Page -->
+    <div id="page-privacy" class="page hidden">
+      <div class="info-page">
+        <h2>Privacy Policy</h2>
+        
+        <p><strong>Last Updated: June 2026</strong></p>
+        
+        <h3>Overview</h3>
+        <p>The Western Maryland Resource Hub respects your privacy. This Privacy Policy explains how we collect, use, and protect your information.</p>
+        
+        <h3>Information We Collect</h3>
+        <p>When you use our platform, we may collect:</p>
+        <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+          <li>Search queries and resource views (to improve our service)</li>
+          <li>Device and browser information (for security and performance)</li>
+          <li>Information you voluntarily provide (when adding resources or contacting us)</li>
+        </ul>
+
+        <h3>How We Use Your Information</h3>
+        <p>Your information is used to:</p>
+        <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+          <li>Provide and improve our service</li>
+          <li>Respond to your inquiries</li>
+          <li>Monitor platform security and prevent abuse</li>
+          <li>Generate anonymous usage statistics</li>
+        </ul>
+
+        <h3>Data Protection</h3>
+        <p>We employ industry-standard security measures to protect your data. However, no online service is completely secure. We encourage you to use strong passwords and protect your account information.</p>
+
+        <h3>Third-Party Links</h3>
+        <p>Our platform may link to external resources. We are not responsible for the privacy practices of third-party websites. We encourage you to review their privacy policies.</p>
+
+        <h3>Changes to This Policy</h3>
+        <p>We may update this Privacy Policy periodically. Significant changes will be posted on this page with an updated date.</p>
+
+        <h3>Questions?</h3>
+        <p>If you have privacy concerns, please contact us at <a href="mailto:supportwmrh@wmresourcehub.com">supportwmrh@wmresourcehub.com</a></p>
+      </div>
+    </div>
+
+    <!-- Terms of Use Page -->
+    <div id="page-terms" class="page hidden">
+      <div class="info-page">
+        <h2>Terms of Use</h2>
+        
+        <p><strong>Last Updated: June 2026</strong></p>
+        
+        <h3>Acceptance of Terms</h3>
+        <p>By using the Western Maryland Resource Hub, you agree to these Terms of Use. If you do not agree, please do not use this platform.</p>
+        
+        <h3>Use License</h3>
+        <p>We grant you a limited, non-exclusive license to use this platform for lawful purposes. You agree not to:</p>
+        <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+          <li>Violate any laws or regulations</li>
+          <li>Infringe on intellectual property rights</li>
+          <li>Harass, abuse, or harm others</li>
+          <li>Attempt to gain unauthorized access to the system</li>
+          <li>Submit false or misleading information</li>
+        </ul>
+
+        <h3>Resource Information</h3>
+        <p>While we strive for accuracy, the information provided is offered "as-is." We do not guarantee the completeness or accuracy of resource details. Always verify information directly with the organizations listed.</p>
+
+        <h3>User-Submitted Content</h3>
+        <p>When you submit resource information, you certify that:</p>
+        <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+          <li>You have the right to submit the information</li>
+          <li>The information is accurate and complete</li>
+          <li>We may edit or remove inappropriate submissions</li>
+        </ul>
+
+        <h3>Limitation of Liability</h3>
+        <p>To the extent permitted by law, the Western Maryland Resource Hub is not liable for damages arising from your use or inability to use this platform, including but not limited to direct, indirect, incidental, or consequential damages.</p>
+
+        <h3>Changes to Terms</h3>
+        <p>We reserve the right to modify these Terms of Use at any time. Your continued use indicates acceptance of any changes.</p>
+
+        <h3>Contact Us</h3>
+        <p>For questions about these terms, contact <a href="mailto:supportwmrh@wmresourcehub.com">supportwmrh@wmresourcehub.com</a></p>
+      </div>
+    </div>
   </main>
 
   <!-- Modal for Resource Details -->
@@ -693,8 +866,11 @@
   <footer>
     <p>Western Maryland Resource Hub — Serving Allegany, Garrett & Washington Counties</p>
     <p style="margin-top: 0.5rem; opacity: 0.8;">
-      <a href="mailto:contact@wmdresourcehub.org">Contact Us</a> | 
-      <a href="#" onclick="showPage('add'); return false;">Submit a Resource</a>
+      <a href="mailto:supportwmrh@wmresourcehub.com">Contact Us</a> | 
+      <a href="#" onclick="showPage('add'); return false;">Submit a Resource</a> |
+      <a href="#" onclick="showPage('about'); return false;">About</a> |
+      <a href="#" onclick="showPage('privacy'); return false;">Privacy</a> |
+      <a href="#" onclick="showPage('terms'); return false;">Terms</a>
     </p>
   </footer>
 
@@ -729,14 +905,14 @@
     const counties = ['Allegany', 'Carroll', 'Frederick', 'Garrett', 'Washington'];
     
     const serviceCategories = {
-      '🏠 Housing & Shelter': ['Emergency Shelter', 'Transitional Housing', 'Permanent Supportive Housing', 'Rental Assistance', 'Reentry Housing', 'Domestic Violence Shelters', 'Youth & Family Shelters', 'Senior Housing', 'LGBTQ+ Housing', 'Sober Living', 'Recovery Housing', 'Homeless Services'],
+      '🏠 Housing & Shelter': ['Emergency Shelter', 'Transitional Housing', 'Permanent Supportive Housing', 'Rental Assistance', 'Reentry Housing', 'Domestic Violence Shelters', 'Youth & Family Shelters'],
       '🍎 Food & Nutrition': ['Food Assistance', 'Food Pantry', 'SNAP', 'Food Stamps', 'Nutrition', 'Emergency Food', 'Soup Kitchens', 'Meal Delivery', 'Groceries Distribution'],
-      '🏥 Healthcare': ['Healthcare', 'Primary Care', 'Dental Care', 'Vision Care', 'Medication Management', 'Medical', 'Medicare', 'Medicaid', 'Insurance', 'HIV/AIDS Services', 'Sexual Health', 'Prescription Assistance', 'Health Education'],
-      '🧠 Mental Health & Counseling': ['Mental Health', 'Psychiatric', 'Therapy', 'Counseling', 'Crisis Counseling', 'Group Therapy', 'Psychiatric Medication', 'Support Groups', 'Trauma-Informed Care', 'Crisis Hotline'],
-      '💊 Substance Abuse & Recovery': ['Substance Abuse', 'Recovery', 'Detox', 'Inpatient Treatment', 'Outpatient Treatment', 'Harm Reduction', '12 Step', 'Smart Recovery', 'MAT', 'Medication-Assisted Treatment', 'Recovery Coaching', 'Sober Living'],
-      '💼 Employment & Job Support': ['Employment', 'Jobs', 'Job Training', 'GED', 'GED Classes', 'Education', 'Programs', 'Grants', 'Resume Help', 'Job Placement', 'Career Counseling', 'Apprenticeships', 'Supported Employment'],
+      '🏥 Healthcare': ['Healthcare', 'Primary Care', 'Dental Care', 'Vision Care', 'Medication Management', 'Medical', 'Medicare', 'Medicaid', 'Insurance', 'HIV/AIDS Services', 'Sexual Health', 'Preventive Care'],
+      '🧠 Mental Health & Counseling': ['Mental Health', 'Psychiatric', 'Therapy', 'Counseling', 'Crisis Counseling', 'Group Therapy', 'Psychiatric Medication', 'Support Groups', 'Trauma-Informed Care'],
+      '💊 Substance Abuse & Recovery': ['Substance Abuse', 'Recovery', 'Detox', 'Inpatient Treatment', 'Outpatient Treatment', 'Harm Reduction', '12 Step', 'Smart Recovery', 'MAT', 'Medication-Assisted Treatment'],
+      '💼 Employment & Job Support': ['Employment', 'Jobs', 'Job Training', 'GED', 'GED Classes', 'Education', 'Programs', 'Grants', 'Resume Help', 'Job Placement', 'Career Counseling', 'Apprenticeships'],
       '⚖️ Legal Assistance': ['Legal Aid', 'Public Defender', 'Record Expungement', 'Family Law', 'Tenant Rights', 'Eviction Prevention', 'Immigration Legal', 'Court Advocacy', 'Victims Rights'],
-      '⚠️ Sex Offender Resources': ['Sex Offender Registry Help', 'Reentry Programs', 'Transition Services', 'Specialized Counseling', 'Treatment Groups', 'Navigation Services', 'Parole Support', 'Probation Support', 'Community Notification Support', 'Registry Compliance'],
+      '⚠️ Sex Offender Resources': ['Sex Offender Registry Help', 'Reentry Programs', 'Transition Services', 'Specialized Counseling', 'Treatment Groups', 'Navigation Services', 'Parole Support', 'Compliance Assistance'],
       '🚗 Transportation': ['Transportation', 'Bus Passes', 'Medical Transport', 'Ride Assistance', 'Accessible Transportation'],
       '👨‍👩‍👧 Family Services': ['Family Services', 'Family Support', 'Childcare', 'Parenting Classes', 'Domestic Violence', 'Family Reunification', 'Child Support'],
       '👴 Seniors': ['Senior Services', 'Case Management', 'Meals on Wheels', 'Senior Centers', 'Memory Care', 'Long-term Care'],
@@ -752,7 +928,7 @@
     };
 
     const serviceTypes = [...new Set(Object.values(serviceCategories).flat())].sort();
-    const populations = ['General Population', 'Families', 'Children & Youth', 'Seniors', 'Veterans', 'Homeless', 'Disabled', 'Immigrants', 'Registered Individuals', 'Pregnant Women', 'Low-Income', 'Uninsured', 'Justice-Involved', 'LGBTQ+', 'Domestic Violence Survivors', 'Refugees', 'Survivors of Trafficking'];
+    const populations = ['General Population', 'Families', 'Children & Youth', 'Seniors', 'Veterans', 'Homeless', 'Disabled', 'Immigrants', 'Registered Individuals', 'Pregnant Women', 'Low-Income', 'Uninsured'];
 
     // Init
     async function init() {
@@ -830,18 +1006,18 @@
 
     function getSampleResources() {
       return [
-        { id: '1', organizationName: 'Western Maryland Food Bank', serviceTypes: ['Food Assistance', 'SNAP', 'Emergency Food'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-6191', address: '120 N Centre St, Cumberland, MD 21502', state: 'MD', zip: '21502', population: 'General Population', servicesOffered: 'Emergency food assistance and distribution', eligibility: 'Low-income families', restrictions: 'Must provide proof of residency' },
-        { id: '2', organizationName: 'Allegany County Health Department', serviceTypes: ['Healthcare', 'Primary Care', 'Dental Care'], county: 'Allegany', city: 'Cumberland', phone: '(301) 759-5000', address: '12501 Willowbrook Rd, Cumberland, MD 21502', state: 'MD', zip: '21502', population: 'General Population', servicesOffered: 'Immunizations, family planning, WIC services', eligibility: 'All residents', restrictions: 'Sliding fee scale' },
-        { id: '3', organizationName: 'Garrett County Community Action', serviceTypes: ['Housing', 'Utility Assistance', 'Rental Assistance'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9431', address: '104 E Center St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Families', servicesOffered: 'Housing assistance, weatherization, utility help', eligibility: 'Low-income residents', restrictions: 'Annual income limits apply' },
-        { id: '4', organizationName: 'Washington County Mental Health Authority', serviceTypes: ['Mental Health', 'Crisis Counseling', 'Substance Abuse', 'Psychiatric'], county: 'Washington', city: 'Hagerstown', phone: '(240) 313-3310', address: '339 E Antietam St, Hagerstown, MD 21740', state: 'MD', zip: '21740', population: 'General Population', servicesOffered: 'Mental health counseling, crisis intervention, addiction treatment', eligibility: 'All residents', restrictions: '24/7 crisis line available' },
-        { id: '5', organizationName: 'Maryland Job Service', serviceTypes: ['Employment', 'Job Training', 'GED Classes', 'Career Counseling'], county: 'All Counties', city: 'Multiple', phone: '(301) 777-2100', address: 'Multiple locations throughout Western MD', state: 'MD', population: 'General Population', servicesOffered: 'Job placement, resume help, training programs', eligibility: 'Unemployed and underemployed', restrictions: 'Must be 18+' },
-        { id: '6', organizationName: 'Allegany Transportation Services', serviceTypes: ['Transportation', 'Medical Transport'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-0811', address: '', state: 'MD', population: 'Seniors', servicesOffered: 'Demand-response transit service', eligibility: 'All residents', restrictions: 'Mon-Fri 6am-6pm' },
-        { id: '7', organizationName: 'Crisis Hotline - Western Maryland', serviceTypes: ['Crisis Counseling', 'Mental Health', 'Support Groups'], county: 'All Counties', city: 'Multiple', phone: '988 (Suicide & Crisis Lifeline)', address: '', state: 'MD', population: 'General Population', servicesOffered: '24/7 crisis support for mental health emergencies', eligibility: 'Anyone in crisis', restrictions: 'Available 24 hours, 7 days a week' },
-        { id: '8', organizationName: 'Garrett County Senior Center', serviceTypes: ['Senior Services', 'Meals on Wheels', 'Case Management'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9011', address: '80 N 4th St, Oakland, MD 21550', state: 'MD', zip: '21550', population: 'Seniors', servicesOffered: 'Meals, activities, transportation', eligibility: 'Seniors 60+', restrictions: 'Age requirement' },
-        { id: '9', organizationName: 'Veteran Services Office', serviceTypes: ['Veteran Services', 'Veterans Benefits', 'PTSD Services'], county: 'Washington', city: 'Hagerstown', phone: '(301) 733-8300', address: '', state: 'MD', population: 'Veterans', servicesOffered: 'Benefits counseling and assistance', eligibility: 'Military veterans', restrictions: 'Proof of military service required' },
-        { id: '10', organizationName: 'Sex Offender Reentry Program', serviceTypes: ['Sex Offender Registry Help', 'Reentry Programs', 'Specialized Counseling', 'Registry Compliance'], county: 'All Counties', city: 'Multiple', phone: '(240) 313-2800', address: '', state: 'MD', population: 'Registered Individuals', servicesOffered: 'Transition assistance, compliance support, counseling', eligibility: 'Registered individuals', restrictions: 'Confidential' },
-        { id: '11', organizationName: 'Family Crisis Center', serviceTypes: ['Domestic Violence', 'Emergency Shelter', 'Family Services', 'Counseling'], county: 'Washington', city: 'Hagerstown', phone: '(301) 797-0433', address: '', state: 'MD', population: 'Domestic Violence Survivors', servicesOffered: 'Safe shelter, counseling, legal advocacy', eligibility: 'Victims of domestic violence', restrictions: 'Confidential location' },
-        { id: '12', organizationName: 'Legal Aid Bureau', serviceTypes: ['Legal Aid', 'Record Expungement', 'Family Law', 'Eviction Prevention'], county: 'All Counties', city: 'Multiple', phone: '(301) 533-4900', address: '', state: 'MD', population: 'Low-Income', servicesOffered: 'Free legal services for eligible clients', eligibility: 'Low-income residents', restrictions: 'Income limits apply' }
+        { id: '1', organizationName: 'Western Maryland Food Bank', serviceTypes: ['Food Assistance', 'SNAP', 'Emergency Food'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-6191', address: '123 Food Way', state: 'MD', zip: '21502', website: '', email: '', servicesOffered: 'Food distribution and SNAP assistance', population: 'General Population', eligibility: '', restrictions: '' },
+        { id: '2', organizationName: 'Allegany County Health Department', serviceTypes: ['Healthcare', 'Primary Care', 'Dental Care'], county: 'Allegany', city: 'Cumberland', phone: '(301) 759-5000', address: '100 Health Center Drive', state: 'MD', zip: '21502', website: '', email: '', servicesOffered: 'Primary care and dental services', population: 'General Population', eligibility: '', restrictions: '' },
+        { id: '3', organizationName: 'Garrett County Community Action', serviceTypes: ['Housing', 'Utility Assistance', 'Rental Assistance'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9431', address: '50 Community Lane', state: 'MD', zip: '21550', website: '', email: '', servicesOffered: 'Housing and utility assistance programs', population: 'Low-Income', eligibility: 'Income guidelines apply', restrictions: '' },
+        { id: '4', organizationName: 'Washington County Mental Health Authority', serviceTypes: ['Mental Health', 'Crisis Counseling', 'Substance Abuse', 'Psychiatric'], county: 'Washington', city: 'Hagerstown', phone: '(301) 790-3600', address: '200 Mental Health Way', state: 'MD', zip: '21740', website: '', email: '', servicesOffered: 'Mental health and counseling services', population: 'General Population', eligibility: '', restrictions: '' },
+        { id: '5', organizationName: 'Maryland Job Service', serviceTypes: ['Employment', 'Job Training', 'GED Classes', 'Career Counseling'], county: 'All Counties', city: 'Multiple', phone: '(301) 722-1100', address: 'Multiple locations', state: 'MD', zip: '', website: '', email: '', servicesOffered: 'Job training and career services', population: 'General Population', eligibility: '', restrictions: '' },
+        { id: '6', organizationName: 'Allegany Transportation Services', serviceTypes: ['Transportation', 'Medical Transport'], county: 'Allegany', city: 'Cumberland', phone: '(301) 722-0811', address: '75 Transit Center', state: 'MD', zip: '21502', website: '', email: '', servicesOffered: 'Public transportation and medical transport', population: 'General Population', eligibility: '', restrictions: '' },
+        { id: '7', organizationName: 'Crisis Hotline - Western Maryland', serviceTypes: ['Crisis Counseling', 'Mental Health', 'Support Groups'], county: 'All Counties', city: 'Multiple', phone: '988', address: 'Multiple locations', state: 'MD', zip: '', website: '', email: '', servicesOffered: '24/7 crisis counseling', population: 'General Population', eligibility: '', restrictions: '' },
+        { id: '8', organizationName: 'Garrett County Senior Center', serviceTypes: ['Senior Services', 'Meals on Wheels', 'Case Management'], county: 'Garrett', city: 'Oakland', phone: '(301) 334-9011', address: '125 Senior Lane', state: 'MD', zip: '21550', website: '', email: '', servicesOffered: 'Senior services and meals', population: 'Seniors', eligibility: 'Age 60+', restrictions: '' },
+        { id: '9', organizationName: 'Veteran Services Office', serviceTypes: ['Veteran Services', 'Veterans Benefits', 'PTSD Services'], county: 'Washington', city: 'Hagerstown', phone: '(301) 733-8395', address: '300 Veteran Plaza', state: 'MD', zip: '21740', website: '', email: '', servicesOffered: 'Veteran benefits and support services', population: 'Veterans', eligibility: 'Military service required', restrictions: '' },
+        { id: '10', organizationName: 'Sex Offender Reentry Program', serviceTypes: ['Sex Offender Registry Help', 'Reentry Programs', 'Specialized Counseling', 'Registry Compliance'], county: 'All Counties', city: 'Multiple', phone: '(301) 555-0100', address: 'Multiple locations', state: 'MD', zip: '', website: '', email: '', servicesOffered: 'Reentry and compliance support', population: 'Registered Individuals', eligibility: 'Court-ordered or voluntary', restrictions: '' },
+        { id: '11', organizationName: 'Family Crisis Center', serviceTypes: ['Domestic Violence', 'Emergency Shelter', 'Family Services', 'Counseling'], county: 'Washington', city: 'Hagerstown', phone: '(301) 739-0033', address: '400 Family Way', state: 'MD', zip: '21740', website: '', email: '', servicesOffered: 'Domestic violence support and shelter', population: 'Families', eligibility: '', restrictions: 'Confidential location' },
+        { id: '12', organizationName: 'Legal Aid Bureau', serviceTypes: ['Legal Aid', 'Record Expungement', 'Family Law', 'Eviction Prevention'], county: 'All Counties', city: 'Multiple', phone: '(301) 555-0200', address: 'Multiple locations', state: 'MD', zip: '', website: '', email: '', servicesOffered: 'Legal assistance and representation', population: 'Low-Income', eligibility: 'Income guidelines apply', restrictions: '' }
       ];
     }
 
@@ -882,7 +1058,9 @@
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.getElementById('page-' + page).classList.add('active');
       document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
+      if (event && event.target) {
+        event.target.classList.add('active');
+      }
       
       if (page === 'dashboard') updateDashboard();
       if (page === 'search') doSearch();
@@ -909,7 +1087,7 @@
       if (svc) filtered = filtered.filter(r => (r.serviceTypes || []).includes(svc));
       
       document.getElementById('results-count').textContent = `${filtered.length} resource${filtered.length !== 1 ? 's' : ''}`;
-      document.getElementById('results').innerHTML = filtered.length ? filtered.map(r => `<div class="resource-card" onclick="showResource('${r.id}')"><h3>${r.organizationName}</h3><p>${r.servicesOffered || ''}</p><p style="font-size: 0.85rem;">📍 ${r.city || ''}, ${r.county}</p></div>`).join('') : '<p style="text-align: center; grid-column: 1/-1;">No resources found.</p>';
+      document.getElementById('results').innerHTML = filtered.length ? filtered.map(r => `<div class="resource-card" onclick="showResource('${r.id}')"><h3>${r.organizationName}</h3><p>${r.servicesOffered || 'Multiple services'}</p><p style="font-size: 0.8rem; color: var(--sage);">📍 ${r.county}</p></div>`).join('') : '<p style="grid-column: 1/-1; text-align: center; padding: 2rem;">No resources found</p>';
     }
 
     function resetFilters() {
@@ -934,7 +1112,7 @@
         ${r.address ? `<p><strong>📍 Address:</strong> ${r.address}, ${r.city}, ${r.state} ${r.zip}</p>` : ''}
         ${r.servicesOffered ? `<div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--warm-border);"><strong>Services:</strong><p>${r.servicesOffered}</p></div>` : ''}
         ${r.eligibility ? `<div style="margin-top: 1rem;"><strong>Eligibility:</strong><p>${r.eligibility}</p></div>` : ''}
-        ${r.restrictions ? `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; border-radius: 4px;"><strong style="color: #856404;">⚠️ Restrictions:</strong><p style="color: #856404; margin-top: 0.5rem;">${r.restrictions}</p></div>` : ''}
+        ${r.restrictions ? `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; border-radius: 4px;"><strong style="color: #856404;">⚠️ Restrictions:</strong><p>${r.restrictions}</p></div>` : ''}
         ${r.population ? `<p style="margin-top: 1rem;"><strong>Population Served:</strong> ${r.population}</p>` : ''}
       `;
       document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="btn-secondary">Close</button>`;
@@ -998,184 +1176,78 @@
             if (lines.length < 2) { toast('Empty file'); return; }
             const headers = lines[0].split(delim).map(h => h.trim().toLowerCase());
             for (let i = 1; i < lines.length; i++) {
-              const vals = lines[i].split(delim).map(v => v.trim());
-              const obj = {}; 
-              headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; });
-              if (obj.organizationname || obj.name) {
-                data.push({
-                  id: Date.now().toString() + i,
-                  organizationName: obj.organizationname || obj.name,
-                  serviceTypes: obj.servicetypes ? obj.servicetypes.split(';').map(s => s.trim()) : ['Food Assistance'],
-                  county: obj.county || 'Allegany',
-                  city: obj.city || '',
-                  phone: obj.phone || '',
-                  email: obj.email || '',
-                  website: obj.website || '',
-                  address: obj.address || '',
-                  state: obj.state || 'MD',
-                  zip: obj.zip || '',
-                  population: obj.population || 'General Population',
-                  servicesOffered: obj.servicesoffered || '',
-                  eligibility: obj.eligibility || '',
-                  restrictions: obj.restrictions || ''
-                });
-              }
+              const values = lines[i].split(delim);
+              let obj = { id: Date.now().toString() + Math.random() };
+              headers.forEach((h, j) => { obj[h] = values[j]?.trim() || ''; });
+              if (obj.organizationName) data.push(obj);
             }
           }
-          if (!data.length) { toast('No resources found'); return; }
-          pendingImport = data;
-          resources = [...resources, ...data];
-          resources.sort((a,b) => a.organizationName.localeCompare(b.organizationName));
+          if (!data.length) { toast('No valid data found'); return; }
+          resources.push(...data);
           saveToCloud();
           updateDashboard();
           toast(`Imported ${data.length} resources!`);
           document.getElementById('import-file').value = '';
-        } catch (err) { toast('Error reading file'); console.error(err); }
+        } catch(err) {
+          toast('Import error: ' + err.message);
+        }
       };
       reader.readAsText(file);
     }
 
     function exportJSON() {
-      const data = JSON.stringify(resources, null, 2);
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'resources-backup.json';
-      a.click();
-      URL.revokeObjectURL(url);
-      toast('Downloaded JSON backup!');
+      const json = JSON.stringify(resources, null, 2);
+      downloadFile(json, 'resources.json', 'application/json');
     }
 
     function exportCSV() {
-      const headers = ['organizationName', 'serviceTypes', 'county', 'city', 'phone', 'email', 'website', 'address', 'state', 'zip', 'servicesOffered', 'eligibility', 'population', 'restrictions'];
-      const csv = [
-        headers.join(','),
-        ...resources.map(r => headers.map(h => {
-          let v = r[h] || '';
-          if (h === 'serviceTypes') v = (r.serviceTypes || []).join('; ');
-          return `"${String(v).replace(/"/g, '""')}"`;
-        }).join(','))
-      ].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'resources.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-      toast('Downloaded CSV file!');
+      const headers = ['id', 'organizationName', 'county', 'city', 'phone', 'email', 'website', 'serviceTypes', 'servicesOffered', 'population'];
+      const csv = [headers.join(','), ...resources.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(','))].join('\n');
+      downloadFile(csv, 'resources.csv', 'text/csv');
     }
 
     function exportTSV() {
-      const headers = ['organizationName', 'serviceTypes', 'county', 'city', 'phone', 'email', 'website', 'address', 'state', 'zip', 'servicesOffered', 'eligibility', 'population', 'restrictions'];
-      const tsv = [
-        headers.join('\t'),
-        ...resources.map(r => headers.map(h => {
-          let v = r[h] || '';
-          if (h === 'serviceTypes') v = (r.serviceTypes || []).join('; ');
-          return String(v).replace(/\t/g, ' ');
-        }).join('\t'))
-      ].join('\n');
-      const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
+      const headers = ['id', 'organizationName', 'county', 'city', 'phone', 'email', 'website', 'serviceTypes', 'servicesOffered', 'population'];
+      const tsv = [headers.join('\t'), ...resources.map(r => headers.map(h => (r[h] || '').toString()).join('\t'))].join('\n');
+      downloadFile(tsv, 'resources.tsv', 'text/tab-separated-values');
+    }
+
+    function downloadFile(content, filename, type) {
+      const blob = new Blob([content], { type });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'resources.tsv';
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-      toast('Downloaded TSV file!');
+      toast('Downloaded: ' + filename);
     }
 
     function smartImport() {
-      const url = document.getElementById('url-input').value.trim();
-      if (!url) { toast('Enter URL'); return; }
-      const status = document.getElementById('url-import-status');
-      const btn = document.getElementById('url-import-btn');
-      btn.disabled = true;
-      btn.textContent = 'Loading...';
-      status.innerHTML = '⏳ Fetching...';
-      
-      fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url))
-        .then(resp => resp.text())
-        .then(html => {
-          status.innerHTML = '🔍 Extracting...';
-          const doc = new DOMParser().parseFromString(html, 'text/html');
-          const found = [];
-          const phoneRe = /(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/g;
-          const emailRe = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/g;
-          
-          doc.querySelectorAll('p, li, div').forEach(el => {
-            const txt = el.textContent.trim();
-            if (txt.length > 20 && txt.length < 500) {
-              const phones = txt.match(phoneRe), emails = txt.match(emailRe);
-              if (phones || emails) {
-                const heading = el.querySelector('h1,h2,h3,strong,b,a');
-                let name = heading ? heading.textContent.trim() : txt.split('\n')[0].substring(0, 80);
-                if (name && name.length >= 3) {
-                  found.push({
-                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                    organizationName: name.substring(0, 100),
-                    phone: phones ? phones[0] : '',
-                    email: emails ? emails[0] : '',
-                    serviceTypes: ['Food Assistance'],
-                    county: 'Allegany',
-                    population: 'General Population',
-                    servicesOffered: txt.substring(0, 200),
-                    eligibility: '',
-                    restrictions: '',
-                    address: '',
-                    city: '',
-                    state: 'MD',
-                    zip: '',
-                    website: url
-                  });
-                }
-              }
-            }
-          });
-          
-          if (found.length === 0) {
-            status.innerHTML = '❌ No resources found';
-          } else {
-            resources = [...resources, ...found];
-            resources.sort((a, b) => a.organizationName.localeCompare(b.organizationName));
-            saveToCloud();
-            updateDashboard();
-            status.innerHTML = `✅ Found and imported ${found.length}!`;
-            toast(`Imported ${found.length} resources from website!`);
-          }
-        })
-        .catch(err => { 
-          status.innerHTML = '❌ Could not fetch URL'; 
-          console.error(err);
-        })
-        .finally(() => {
-          btn.disabled = false;
-          btn.textContent = 'Import';
-        });
+      toast('Web scraping requires backend support');
     }
 
-    function webSearch(q) {
-      window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, '_blank');
+    function webSearch(query) {
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
     }
 
     function customWebSearch() {
       const keyword = document.getElementById('discover-keyword').value;
       if (!keyword) { toast('Enter keywords'); return; }
-      webSearch(keyword + ' Western Maryland');
+      webSearch(keyword + ' Maryland');
     }
 
     function toast(msg) {
-      const t = document.createElement('div');
-      t.className = 'toast';
-      t.textContent = msg;
-      document.getElementById('toast-container').appendChild(t);
-      setTimeout(() => t.remove(), 3000);
+      const container = document.getElementById('toast-container');
+      const div = document.createElement('div');
+      div.className = 'toast';
+      div.textContent = msg;
+      container.appendChild(div);
+      setTimeout(() => div.remove(), 3000);
     }
 
-    // Start
-    init();
+    // Initialize on page load
+    window.addEventListener('load', init);
   </script>
 </body>
 </html>
